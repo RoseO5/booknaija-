@@ -1,7 +1,7 @@
 'use client';
 
 export default function Admin() {
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     
     // Create FormData (includes files automatically)
