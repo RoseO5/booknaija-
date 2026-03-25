@@ -59,7 +59,7 @@ export default function Admin() {
 
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Description</label>
-            <textarea name="description" rows="4" placeholder="Brief description of your book..." style={{ width: '100%', padding: '12px', border: '2px solid #ddd', borderRadius: '8px', fontSize: '16px', resize: 'vertical' }} />
+            <textarea name="description" rows={4} placeholder="Brief description of your book..." style={{ width: '100%', padding: '12px', border: '2px solid #ddd', borderRadius: '8px', fontSize: '16px', resize: 'vertical' }} />
           </div>
 
           <div>
