@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
