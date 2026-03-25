@@ -17,7 +17,7 @@ export default function Books() {
       .catch(() => setLoading(false));
   }, []);
 
-  const handleReadBook = async (bookId, bookTitle) => {
+  const handleReadBook = async (bookId: any, bookTitle: any) => {
     const mins = prompt(`How many minutes did you read "${bookTitle}"?`);
     const pages = prompt('How many pages did you read?');
 
