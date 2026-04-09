@@ -13,7 +13,7 @@ export default function Admin() {
     
     // Validate PDF selected
     const pdfFile = formData.get('pdf');
-    if (!pdfFile || !pdfFile.name) {
+    if (!pdfFile || !(pdfFile instanceof File)) {
       setError('❌ Please select a PDF file before uploading');
       return;
     }
