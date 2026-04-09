@@ -41,7 +41,7 @@ export default function Admin() {
         const text = await res.text();
         setError(`❌ SERVER ERROR\n\nStatus: ${res.status}\n\n${text.substring(0, 200)}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload error:', err);
       if (err.name === 'AbortError') {
         setError('❌ Upload cancelled or timed out. Please try again with better signal.');
