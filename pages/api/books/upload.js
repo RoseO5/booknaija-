@@ -42,8 +42,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'PDF file is required' });
     }
 
-    console.log(`📄 Uploading: ${pdfFile.originalFilename}`);
-
     const pdfBuffer = await fs.readFile(pdfFile.filepath);
 
     const blob = await put(
@@ -78,9 +76,9 @@ export default async function handler(req, res) {
         size: (pdfBuffer.length / 1024).toFixed(0) + ' KB',
       },
     });
+
   } catch (error) {
     console.error('UPLOAD ERROR:', error);
-
     return res.status(500).json({
       error: 'Upload failed',
       details: error.message,
