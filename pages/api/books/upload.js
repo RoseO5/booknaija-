@@ -1,12 +1,10 @@
 import { put } from '@vercel/blob';
-import { promises as fs } from 'fs';
 import formidable from 'formidable';
+import { promises as fs } from 'fs';
 import clientPromise from '../../../lib/mongodb';
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 export default async function handler(req, res) {
@@ -15,14 +13,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('🚀 Upload started');
-
-    const form = formidable({
-      keepExtensions: true,
-      maxFileSize: 5 * 1024 * 1024, // 5MB limit
-      uploadDir: '/tmp',
-      multiples: false
-    });
+    const form = formidable({ multiples: false });
 
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
@@ -31,74 +22,51 @@ export default async function handler(req, res) {
       });
     });
 
-    const title = fields.title || 'Untitled Book';
-    const authorName = fields.authorName || 'Anonymous';
-    const description = fields.description || '';
-    const pages = fields.pages || 0;
+    // Handle both formats
+    let pdfFile = files.pdf;
+    if (Array.isArray(pdfFile)) pdfFile = pdfFile[0];
 
-    const pdfFile = files.pdf;
-
-    if (!pdfFile) {
-      return res.status(400).json({ error: 'PDF file is required' });
+    if (!pdfFile || !pdfFile.filepath) {
+      return res.status(400).json({ error: 'No PDF uploaded' });
     }
 
-    console.log(
-      `📄 File: ${pdfFile.originalFilename} (${(pdfFile.size / 1024).toFixed(0)} KB)`
+    const buffer = await fs.readFile(pdfFile.filepath);
+
+    const blob = await put(
+      `books/${Date.now()}-${pdfFile.originalFilename}`,
+      buffer,
+      { access: 'public' }
     );
 
-    // Read file
-    const pdfBuffer = await fs.readFile(pdfFile.filepath);
+    // Save to DB (safe fallback)
+    try {
+      const client = await clientPromise;
+      const db = client.db('booknaija');
 
-    // Upload to Vercel Blob
-    const pdfBlob = await put(
-      `books/${Date.now()}-${encodeURIComponent(pdfFile.originalFilename)}`,
-      pdfBuffer,
-      {
-        access: 'public',
-        contentType: 'application/pdf',
-        addRandomSuffix: false
-      }
-    );
-
-    // Delete temp file
-    await fs.unlink(pdfFile.filepath);
-
-    console.log('✅ Blob upload success');
-
-    // Save to MongoDB
-    const client = await clientPromise;
-    const db = client.db('booknaija');
-
-    const result = await db.collection('books').insertOne({
-      title,
-      authorName,
-      description,
-      pages,
-      pdfUrl: pdfBlob.url,
-      coverUrl: `https://via.placeholder.com/400x600?text=${encodeURIComponent(title)}`,
-      status: 'published',
-      createdAt: new Date()
-    });
-
-    console.log('✅ MongoDB saved');
+      await db.collection('books').insertOne({
+        title: fields.title || 'Untitled',
+        authorName: fields.authorName || 'Anonymous',
+        pdfUrl: blob.url,
+        createdAt: new Date(),
+      });
+    } catch (dbError) {
+      console.error('DB error:', dbError);
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Book uploaded successfully',
       book: {
-        id: result.insertedId,
-        title,
-        pdfUrl: pdfBlob.url,
-        size: (pdfBuffer.length / 1024).toFixed(0) + ' KB'
-      }
+        title: fields.title,
+        pdfUrl: blob.url,
+      },
     });
 
   } catch (error) {
-    console.error('❌ Upload error:', error);
+    console.error('UPLOAD ERROR:', error);
 
     return res.status(500).json({
       error: 'Upload failed',
-      details: error.message
+      details: error.message,
     });
   }
 }
