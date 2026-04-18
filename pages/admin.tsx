@@ -6,7 +6,7 @@ export default function Admin() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     setUploading(true);
