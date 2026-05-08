@@ -7,7 +7,7 @@ export default function Admin() {
   const [debugLog, setDebugLog] = useState('');
   const [message, setMessage] = useState('');
 
-  const log = (msg) => {
+  const log = (msg: string) => {
     console.log(msg);
     setDebugLog(prev => prev + msg + '\n');
   };
