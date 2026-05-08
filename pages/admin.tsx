@@ -15,7 +15,7 @@ export default function Admin() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const pdfFile = formData.get('pdf');
+    const pdfFile = formData.get('pdf') as File | null;
     
     // Reset UI
     setUploading(true);
