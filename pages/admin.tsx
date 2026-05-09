@@ -3,6 +3,41 @@
 import { useState } from 'react';
 
 export default function Admin() {
+  // Authentication state
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // Login screen (shown first)
+  if (!authenticated) {
+    const handleLogin = async (e: any) => {
+      e.preventDefault();
+      const res = await fetch('/api/verify-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const result = await res.json();
+      if (result.valid) {
+        setAuthenticated(true);
+      } else {
+        setLoginError('❌ Incorrect password');
+        setTimeout(() => setLoginError(''), 2000);
+      }
+    };
+    return (
+      <div style={{ padding: '30px', maxWidth: '400px', margin: '100px auto', fontFamily: 'Arial' }}>
+        <h2 style={{ color: '#667eea', textAlign: 'center' }}>🔐 Admin Login</h2>
+        {loginError && <div style={{ background: '#f8d7da', color: '#721c24', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>{loginError}</div>}
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <input type="password" value={password} onChange={(e: any) => setPassword(e.target.value)} placeholder="Enter admin password" required style={{ padding: '12px', border: '1px solid #ddd', borderRadius: '6px' }} />
+          <button type="submit" style={{ padding: '12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Login</button>
+        </form>
+      </div>
+    );
+  }
+
+  // === YOUR EXISTING CODE STARTS HERE (unchanged) ===
   const [uploading, setUploading] = useState(false);
   const [debugLog, setDebugLog] = useState('');
   const [message, setMessage] = useState('');
@@ -17,12 +52,10 @@ export default function Admin() {
     const formData = new FormData(e.currentTarget);
     const pdfFile = formData.get('pdf') as File | null;
     
-    // Reset UI
     setUploading(true);
     setMessage('');
-    setDebugLog(''); // Clear previous logs
+    setDebugLog('');
 
-    // Validate file
     if (!pdfFile || !pdfFile.name) {
       setMessage('❌ No PDF file selected');
       return;
@@ -36,7 +69,7 @@ export default function Admin() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 60s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
       const res = await fetch('/api/books/upload', {
         method: 'POST',
@@ -74,7 +107,7 @@ export default function Admin() {
       
       if (err.name === 'AbortError') {
         setMessage('❌ TIMEOUT: Upload took too long. Try smaller file or better signal.');
-        log('⏰ Upload timed out after 60 seconds');
+        log('⏰ Upload timed out after 20 seconds');
       } else if (err.message?.includes('fetch')) {
         setMessage('❌ NETWORK ERROR: Connection lost. Check signal and retry.');
         log('📶 Network connection failed during upload');
@@ -93,33 +126,14 @@ export default function Admin() {
     <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'monospace' }}>
       <h1 style={{ textAlign: 'center', color: '#667eea' }}>➕ Upload Book (Debug Mode)</h1>
       
-      {/* DEBUG LOG */}
       {debugLog && (
-        <div style={{ 
-          background: '#f8f9fa', 
-          border: '1px solid #dee2e6', 
-          borderRadius: '8px', 
-          padding: '12px', 
-          marginBottom: '15px',
-          maxHeight: '200px',
-          overflowY: 'auto',
-          fontSize: '12px',
-          whiteSpace: 'pre-wrap'
-        }}>
-          <strong>📱 DEBUG LOG:</strong><br/>
-          {debugLog}
+        <div style={{ background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', padding: '12px', marginBottom: '15px', maxHeight: '200px', overflowY: 'auto', fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+          <strong>📱 DEBUG LOG:</strong><br/>{debugLog}
         </div>
       )}
       
-      {/* MESSAGE */}
       {message && (
-        <div style={{ 
-          margin: '10px 0', 
-          padding: '12px', 
-          background: message.includes('✅') ? '#d4edda' : '#f8d7da',
-          borderLeft: `4px solid ${message.includes('✅') ? '#28a745' : '#dc3545'}`,
-          borderRadius: '4px'
-        }}>
+        <div style={{ margin: '10px 0', padding: '12px', background: message.includes('✅') ? '#d4edda' : '#f8d7da', borderLeft: `4px solid ${message.includes('✅') ? '#28a745' : '#dc3545'}`, borderRadius: '4px' }}>
           {message}
         </div>
       )}
@@ -128,20 +142,7 @@ export default function Admin() {
         <input name="title" placeholder="Title *" required style={{ width: '100%', margin: '8px 0', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }} />
         <input name="authorName" placeholder="Author *" required style={{ width: '100%', margin: '8px 0', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }} />
         <input name="pdf" type="file" accept=".pdf" required style={{ width: '100%', margin: '8px 0', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }} />
-        <button 
-          type="submit" 
-          disabled={uploading}
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            background: uploading ? '#6c757d' : '#667eea', 
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontWeight: 'bold',
-            cursor: uploading ? 'not-allowed' : 'pointer'
-          }}
-        >
+        <button type="submit" disabled={uploading} style={{ width: '100%', padding: '12px', background: uploading ? '#6c757d' : '#667eea', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: uploading ? 'not-allowed' : 'pointer' }}>
           {uploading ? '📤 Uploading...' : '📤 Upload Book'}
         </button>
       </form>
