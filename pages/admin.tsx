@@ -37,25 +37,25 @@ export default function Admin() {
     );
   }
 
-  // Admin dashboard with 3 functions only
+  // Admin dashboard: 3 moderation functions only
   return (
     <div style={{ padding: '20px', maxWidth: '700px', margin: '0 auto', fontFamily: 'Arial' }}>
-      <h1 style={{ color: '#667eea', textAlign: 'center' }}>🛡️ Admin Dashboard</h1>
+      <h1 style={{ color: '#667eea', textAlign: 'center' }}>🛡️ Admin Moderation</h1>
       
       {/* Tab Navigation */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
-        <button onClick={() => setActiveTab('approve')} style={{ padding: '10px 20px', background: activeTab === 'approve' ? '#667eea' : '#f1f1f1', color: activeTab === 'approve' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✅ Approve Books</button>
-        <button onClick={() => setActiveTab('reject')} style={{ padding: '10px 20px', background: activeTab === 'reject' ? '#dc3545' : '#f1f1f1', color: activeTab === 'reject' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>🚫 Reject Spam</button>
-        <button onClick={() => setActiveTab('monitor')} style={{ padding: '10px 20px', background: activeTab === 'monitor' ? '#6c757d' : '#f1f1f1', color: activeTab === 'monitor' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>📊 Monitor Abuse</button>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px', flexWrap: 'wrap' }}>
+        <button onClick={() => setActiveTab('approve')} style={{ padding: '10px 15px', background: activeTab === 'approve' ? '#667eea' : '#f1f1f1', color: activeTab === 'approve' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✅ Approve</button>
+        <button onClick={() => setActiveTab('reject')} style={{ padding: '10px 15px', background: activeTab === 'reject' ? '#dc3545' : '#f1f1f1', color: activeTab === 'reject' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>🚫 Reject Spam</button>
+        <button onClick={() => setActiveTab('monitor')} style={{ padding: '10px 15px', background: activeTab === 'monitor' ? '#6c757d' : '#f1f1f1', color: activeTab === 'monitor' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📊 Monitor</button>
       </div>
 
       {/* Tab Content */}
       {activeTab === 'approve' && (
         <div>
-          <h3>✅ Pending Approvals</h3>
-          <p style={{ color: '#666' }}>No books pending approval. All uploads are auto-approved for now.</p>
+          <h3>✅ Approve Books</h3>
+          <p style={{ color: '#666' }}>All uploads are auto-approved. Review flagged books here in Phase 3.</p>
           <div style={{ background: '#d4edda', padding: '15px', borderRadius: '8px', marginTop: '15px' }}>
-            <strong>💡 Tip:</strong> In Phase 3, add a "pending" status to books and list them here for manual review.
+            <strong>💡 Phase 3:</strong> Add "pending" status + manual approval workflow.
           </div>
         </div>
       )}
@@ -63,9 +63,9 @@ export default function Admin() {
       {activeTab === 'reject' && (
         <div>
           <h3>🚫 Reject Spam</h3>
-          <p style={{ color: '#666' }}>No spam reports yet.</p>
+          <p style={{ color: '#666' }}>No spam reports yet. Users can report books in Phase 3.</p>
           <div style={{ background: '#fff3cd', padding: '15px', borderRadius: '8px', marginTop: '15px' }}>
-            <strong>💡 Tip:</strong> Add a "Report" button on book pages. Reports appear here for you to review and delete.
+            <strong>💡 Phase 3:</strong> Add "Report" button → reports appear here for review.
           </div>
         </div>
       )}
@@ -74,19 +74,17 @@ export default function Admin() {
         <div>
           <h3>📊 Monitor Abuse</h3>
           <div style={{ background: '#e7f3ff', padding: '15px', borderRadius: '8px' }}>
-            <strong>📈 Stats:</strong><br/>
+            <strong>📈 Live Stats:</strong><br/>
             • Total books: <strong>0</strong><br/>
-            • Total users: <strong>1</strong> (you)<br/>
+            • Total uploads today: <strong>0</strong><br/>
             • Reports: <strong>0</strong><br/>
-            • Uploads today: <strong>0</strong>
+            • Auto-flags: <strong>0</strong>
           </div>
           <div style={{ background: '#f8d7da', padding: '15px', borderRadius: '8px', marginTop: '15px' }}>
-            <strong>⚠️ Alert:</strong> No abuse detected. Monitor will auto-flag if:
-            <ul style={{ marginTop: '8px' }}>
-              <li>Same IP uploads >10 books/hour</li>
-              <li>Book title contains spam keywords</li>
-              <li>PDF size >50MB (unusual)</li>
-            </ul>
+            <strong>⚠️ Auto-Alerts:</strong> System flags if:<br/>
+            • Same IP uploads &gt;10 books/hour<br/>
+            • Title contains spam keywords<br/>
+            • PDF size &gt;50MB (unusual)
           </div>
         </div>
       )}
