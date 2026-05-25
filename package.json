@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1053.0",
     "axios": "^1.13.6",
     "cloudinary": "^2.9.0",
     "mongodb": "^7.1.0",
