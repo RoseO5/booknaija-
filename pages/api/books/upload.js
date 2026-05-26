@@ -74,6 +74,7 @@ export default async function handler(req, res) {
       pdfUrl,
       coverUrl,
       status: abuseFlags.length > 0 ? 'flagged' : 'pending',
+      country: 'NG', // Default Nigeria
       abuseFlags,
       reports: 0,
       createdAt: new Date()
