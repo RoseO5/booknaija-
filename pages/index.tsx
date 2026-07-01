@@ -1,67 +1,40 @@
 export default function Home() {
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      padding: '50px 20px',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '3rem', margin: '0 0 20px 0' }}>📚 BookNaija</h1>
-        <p style={{ fontSize: '1.2rem', opacity: 0.9, marginBottom: '40px' }}>
-          Read Nigerian Books • Support Local Authors • Win Monthly Prizes
+    <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '40px' }}>
+        <h1 style={{ color: '#667eea', fontSize: '32px', marginBottom: '10px' }}>📚 BookNaija</h1>
+        <p style={{ color: '#666', fontSize: '18px', lineHeight: '1.5' }}>
+          Discover and share Nigerian stories.<br/>
+          <span style={{ fontSize: '16px', color: '#999' }}>Built for Nigerian readers & authors</span>
         </p>
-        
-        <div style={{ 
-          background: 'rgba(255,255,255,0.1)', 
-          backdropFilter: 'blur(10px)',
-          borderRadius: '15px',
-          padding: '40px',
-          marginBottom: '40px'
-        }}>
-          <h2 style={{ margin: '0 0 20px 0', fontSize: '2rem' }}>🎯 What We Offer</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '20px' }}>
-            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '20px', borderRadius: '10px' }}>
-              <strong>₦1,000/month</strong><br/>Unlimited Access
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '20px', borderRadius: '10px' }}>
-              <strong>₦5,000 Prize</strong><br/>Top 3 Readers
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '20px', borderRadius: '10px' }}>
-              <strong>Author Rewards</strong><br/>Per Minute Read
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="/subscribe" style={{ 
-            background: '#fff', 
-            color: '#667eea', 
-            padding: '15px 40px', 
-            borderRadius: '50px', 
-            textDecoration: 'none', 
-            fontWeight: 'bold',
-            fontSize: '1.1rem'
-          }}>
-            📖 Start Reading
-          </a>
-          <a href="/admin" style={{ 
-            background: 'transparent', 
-            color: '#fff', 
-            padding: '15px 40px', 
-            borderRadius: '50px', 
-            border: '2px solid white',
-            textDecoration: 'none',
-            fontSize: '1.1rem'
-          }}>
-            ➕ Upload Book
-          </a>
-        </div>
-
-        <div style={{ marginTop: '50px', fontSize: '0.9rem', opacity: 0.7 }}>
-          <p>Phase 1: Building • No real money yet • Test mode</p>
-        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '40px' }}>
+        <a href="/books" style={{ display: 'block', padding: '15px', background: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
+          📖 Browse Books
+        </a>
+        <a href="/upload" style={{ display: 'block', padding: '15px', background: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
+          📤 Upload Your Book
+        </a>
+        <a href="/admin" style={{ display: 'block', padding: '15px', background: '#6c757d', color: 'white', textDecoration: 'none', borderRadius: '8px', fontSize: '16px' }}>
+          🔐 Admin Dashboard
+        </a>
+      </div>
+      <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
+        <h3 style={{ marginTop: 0, color: '#333' }}>✨ Why BookNaija?</h3>
+        <ul style={{ color: '#666', lineHeight: '1.8', paddingLeft: '20px' }}>
+          <li>🇳🇬 Built for Nigerian readers & authors</li>
+          <li>📱 Works on all phones, even with weak signal</li>
+          <li>🔒 Safe & moderated content</li>
+          <li>💰 Authors upload free • Readers ₦1000/month</li>
+        </ul>
+      </div>
+      <div style={{ marginTop: '40px', fontSize: '14px', color: '#999' }}>
+        <p>© 2026 BookNaija • Made with 💚 for Nigerian storytellers</p>
+        <p style={{ marginTop: '10px' }}>
+          <a href="/privacy" style={{ color: '#667eea', margin: '0 10px' }}>Privacy Policy</a> • 
+          <a href="/terms" style={{ color: '#667eea', margin: '0 10px' }}>Terms of Service</a> • 
+          <a href="mailto:hello@booknaija.com" style={{ color: '#667eea', margin: '0 10px' }}>Contact</a>
+        </p>
       </div>
     </div>
   );
