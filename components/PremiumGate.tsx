@@ -27,6 +27,7 @@ export default function PremiumGate({ children }: { children: React.ReactNode })
   const accessCard = session?.user?.subscription?.accessCard;
 
   const handleSubscribe = async () => {
+    if (!session?.user) return;
     setLoading(true);
     try {
       const res = await fetch('/api/create-payment', {
