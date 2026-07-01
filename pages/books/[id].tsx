@@ -21,7 +21,7 @@ export default function BookDetail() {
       <h1 style={{color:'#667eea'}}>{book.title}</h1>
       <p style={{color:'#666',marginBottom:'15px'}}>By {book.authorName}</p>
       <PremiumGate>
-        <a href={book.pdfUrl} target="_blank" rel="noopener noreferrer nofollow" rel="noopener noreferrer" style={{display:'inline-block',padding:'15px 30px',background:'#667eea',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
+        <a href={book.pdfUrl} target="_blank" rel="noopener noreferrer nofollow" style={{display:'inline-block',padding:'15px 30px',background:'#667eea',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
           📖 Read Book Now
         </a>
       </PremiumGate>
