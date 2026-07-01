@@ -6,23 +6,33 @@ export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState('upload');
-  const [books, setBooks] = useState({ pending: [], flagged: [], total: 0 });
-  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('analytics');
+  const [stats, setStats] = useState({ totalBooks: 0, pending: 0, flagged: 0, users: 0, reads: 0 });
+  const [authors, setAuthors] = useState([]);
+  const [pendingBooks, setPendingBooks] = useState([]);
+  const [flaggedBooks, setFlaggedBooks] = useState([]);
 
-  // Fetch books when authenticated + tab changes
+  // Fetch data when tab changes
   useEffect(() => {
-    if (!authenticated || (activeTab !== 'approve' && activeTab !== 'reject' && activeTab !== 'monitor')) return;
-    setLoading(true);
-    fetch('/api/books/admin-list')
-      .then(r => r.json())
-      .then(data => setBooks({
-        pending: Array.isArray(data.pending) ? data.pending : [],
-        flagged: Array.isArray(data.flagged) ? data.flagged : [],
-        total: data.total || 0
-      }))
-      .catch(() => setBooks({ pending: [], flagged: [], total: 0 }))
-      .finally(() => setLoading(false));
+    if (!authenticated) return;
+    
+    // Fetch Stats
+    fetch('/api/books/admin-list').then(r => r.json()).then(data => {
+      setStats({
+        totalBooks: data.total || 0,
+        pending: data.pending?.length || 0,
+        flagged: data.flagged?.length || 0,
+        users: 0, // Placeholder for now
+        reads: 0  // Placeholder for now
+      });
+      setPendingBooks(data.pending || []);
+      setFlaggedBooks(data.flagged || []);
+    });
+
+    // Fetch Authors (if tab is authors)
+    if (activeTab === 'authors') {
+      fetch('/api/authors/list').then(r => r.json()).then(data => setAuthors(data.authors || [])).catch(() => {});
+    }
   }, [authenticated, activeTab]);
 
   const handleLogin = async (e: any) => {
@@ -33,36 +43,24 @@ export default function Admin() {
       body: JSON.stringify({ password })
     });
     const result = await res.json();
-    if (result.valid) {
-      setAuthenticated(true);
-      setActiveTab('upload'); // Start with upload tab
-    } else {
-      setLoginError('❌ Incorrect password');
-      setTimeout(() => setLoginError(''), 2000);
-    }
+    if (result.valid) setAuthenticated(true);
+    else { setLoginError('❌ Incorrect password'); setTimeout(() => setLoginError(''), 2000); }
   };
 
   const updateStatus = async (id: string, status: string) => {
-    try {
-      await fetch('/api/books/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: id, status })
-      });
-      // Refresh list
-      const res = await fetch('/api/books/admin-list');
-      const data = await res.json();
-      setBooks({
-        pending: Array.isArray(data.pending) ? data.pending : [],
-        flagged: Array.isArray(data.flagged) ? data.flagged : [],
-        total: data.total || 0
-      });
-    } catch (err) {
-      alert('Failed to update status');
-    }
+    await fetch('/api/books/update-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookId: id, status })
+    });
+    // Refresh lists
+    const res = await fetch('/api/books/admin-list');
+    const data = await res.json();
+    setPendingBooks(data.pending || []);
+    setFlaggedBooks(data.flagged || []);
+    setStats(prev => ({ ...prev, pending: data.pending?.length || 0, flagged: data.flagged?.length || 0 }));
   };
 
-  // Login screen
   if (!authenticated) {
     return (
       <div style={{ padding: '30px', maxWidth: '400px', margin: '100px auto', fontFamily: 'Arial' }}>
@@ -77,34 +75,65 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '700px', margin: '0 auto', fontFamily: 'Arial' }}>
-      <h1 style={{ color: '#667eea', textAlign: 'center' }}>🛡️ Admin Dashboard</h1>
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', fontFamily: 'Arial' }}>
+      <h1 style={{ color: '#667eea', textAlign: 'center' }}>🛡️ Super Admin Dashboard</h1>
       
-      {/* Tabs: Upload + 3 moderation functions */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <button onClick={() => setActiveTab('upload')} style={{ padding: '10px 15px', background: activeTab === 'upload' ? '#667eea' : '#f1f1f1', color: activeTab === 'upload' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📤 Upload</button>
-        <button onClick={() => setActiveTab('approve')} style={{ padding: '10px 15px', background: activeTab === 'approve' ? '#28a745' : '#f1f1f1', color: activeTab === 'approve' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✅ Approve ({books.pending?.length || 0})</button>
-        <button onClick={() => setActiveTab('reject')} style={{ padding: '10px 15px', background: activeTab === 'reject' ? '#dc3545' : '#f1f1f1', color: activeTab === 'reject' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>🚫 Reject ({books.flagged?.length || 0})</button>
-        <button onClick={() => setActiveTab('monitor')} style={{ padding: '10px 15px', background: activeTab === 'monitor' ? '#6c757d' : '#f1f1f1', color: activeTab === 'monitor' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📊 Monitor ({books.total || 0})</button>
+      {/* Navigation Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {[
+          { id: 'analytics', label: '📊 Analytics', color: '#6c757d' },
+          { id: 'upload', label: '📤 My Uploads', color: '#667eea' },
+          { id: 'approve', label: `✅ Approve (${stats.pending})`, color: '#28a745' },
+          { id: 'reject', label: `🚫 Reject (${stats.flagged})`, color: '#dc3545' },
+          { id: 'authors', label: '✍️ Authors', color: '#fd7e14' }
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} 
+            style={{ padding: '10px 15px', background: activeTab === tab.id ? tab.color : '#f1f1f1', color: activeTab === tab.id ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* UPLOAD TAB - You can upload your own books here */}
+      {/* ANALYTICS TAB */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+          <div style={{ background: '#e7f3ff', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '32px', color: '#0056b3' }}>{stats.totalBooks}</h3>
+            <p style={{ margin: '5px 0 0', color: '#666' }}>Total Books</p>
+          </div>
+          <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '32px', color: '#856404' }}>{stats.pending}</h3>
+            <p style={{ margin: '5px 0 0', color: '#666' }}>Pending Approval</p>
+          </div>
+          <div style={{ background: '#f8d7da', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '32px', color: '#721c24' }}>{stats.flagged}</h3>
+            <p style={{ margin: '5px 0 0', color: '#666' }}>Flagged/Spam</p>
+          </div>
+          <div style={{ background: '#d4edda', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '32px', color: '#155724' }}>{stats.users}</h3>
+            <p style={{ margin: '5px 0 0', color: '#666' }}>Active Readers</p>
+          </div>
+        </div>
+      )}
+
+      {/* UPLOAD TAB (For Admin Only) */}
       {activeTab === 'upload' && (
-        <UploadForm onUploaded={() => { setActiveTab('approve'); }} />
+        <div style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0 }}>📤 Upload Your Own Book</h3>
+          <p style={{ fontSize: '14px', color: '#666' }}>As an admin, your uploads are auto-approved.</p>
+          <iframe src="/upload" style={{ width: '100%', height: '400px', border: 'none' }} title="Admin Upload"></iframe>
+        </div>
       )}
 
       {/* APPROVE TAB */}
       {activeTab === 'approve' && (
         <div>
           <h3>✅ Pending Approvals</h3>
-          {loading ? <p>Loading...</p> : books.pending?.length === 0 ? (
-            <p style={{ color: '#666' }}>No books pending approval.</p>
-          ) : (
+          {pendingBooks.length === 0 ? <p>No pending books.</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {books.pending.map((b: any) => (
+              {pendingBooks.map((b: any) => (
                 <div key={b._id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
                   <strong>{b.title}</strong> by {b.authorName}<br/>
-                  <span style={{ fontSize: '12px', color: '#666' }}>🚩 {b.reports || 0} reports</span>
                   <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                     <button onClick={() => updateStatus(b._id, 'published')} style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✅ Approve</button>
                     <button onClick={() => updateStatus(b._id, 'rejected')} style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🚫 Reject</button>
@@ -120,14 +149,12 @@ export default function Admin() {
       {activeTab === 'reject' && (
         <div>
           <h3>🚫 Flagged/Spam</h3>
-          {loading ? <p>Loading...</p> : books.flagged?.length === 0 ? (
-            <p style={{ color: '#666' }}>No flagged books.</p>
-          ) : (
+          {flaggedBooks.length === 0 ? <p>No flagged books.</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {books.flagged.map((b: any) => (
+              {flaggedBooks.map((b: any) => (
                 <div key={b._id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
                   <strong>{b.title}</strong> by {b.authorName}<br/>
-                  <span style={{ fontSize: '12px', color: '#666' }}>⚠️ {(b.abuseFlags || []).join(', ') || 'User reports'}</span>
+                  <span style={{ fontSize: '12px', color: '#dc3545' }}>⚠️ {(b.abuseFlags || []).join(', ')}</span>
                   <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                     <button onClick={() => updateStatus(b._id, 'published')} style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✅ Approve</button>
                     <button onClick={() => updateStatus(b._id, 'rejected')} style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🗑️ Delete</button>
@@ -139,14 +166,28 @@ export default function Admin() {
         </div>
       )}
 
-      {/* MONITOR TAB */}
-      {activeTab === 'monitor' && (
-        <div style={{ background: '#e7f3ff', padding: '15px', borderRadius: '8px' }}>
-          <h3>📊 Live Stats</h3>
-          <p>Total Books: <strong>{books.total || 0}</strong></p>
-          <p>Pending Approval: <strong>{books.pending?.length || 0}</strong></p>
-          <p>Flagged/Spam: <strong>{books.flagged?.length || 0}</strong></p>
-          <p style={{ marginTop: '10px', fontSize: '14px' }}>💡 Auto-detection: Spam keywords, oversized files, 3+ user reports</p>
+      {/* AUTHORS ONBOARDING TAB */}
+      {activeTab === 'authors' && (
+        <div>
+          <h3>✍️ Author Onboarding & Management</h3>
+          <p style={{ color: '#666' }}>Manage author details, bank info, and compliance.</p>
+          <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+            <h4>Add New Author</h4>
+            <form onSubmit={(e) => { e.preventDefault(); alert('Author onboarding form would go here!'); }}>
+              <input placeholder="Full Name" style={{ width: '100%', padding: '8px', margin: '5px 0' }} />
+              <input placeholder="Location (State/City)" style={{ width: '100%', padding: '8px', margin: '5px 0' }} />
+              <input placeholder="Bank Name" style={{ width: '100%', padding: '8px', margin: '5px 0' }} />
+              <input placeholder="Account Number" style={{ width: '100%', padding: '8px', margin: '5px 0' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '10px 0' }}>
+                <input type="checkbox" required /> I agree to the Compliance & Terms
+              </label>
+              <button type="submit" style={{ padding: '10px 20px', background: '#fd7e14', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Onboard Author</button>
+            </form>
+          </div>
+          <h4>Registered Authors</h4>
+          {authors.length === 0 ? <p>No authors onboarded yet.</p> : (
+            <ul>{authors.map((a: any) => <li key={a._id}>{a.name} - {a.location}</li>)}</ul>
+          )}
         </div>
       )}
 
@@ -154,74 +195,6 @@ export default function Admin() {
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
         <button onClick={() => setAuthenticated(false)} style={{ padding: '10px 30px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>🔓 Logout</button>
       </div>
-    </div>
-  );
-}
-
-// Reusable Upload Form Component (for admin to upload their own books)
-function UploadForm({ onUploaded }: { onUploaded: () => void }) {
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState('');
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const pdfFile = formData.get('pdf') as File | null;
-    
-    if (!pdfFile || !pdfFile.name) {
-      setMessage('❌ Please select a PDF file');
-      return;
-    }
-
-    setUploading(true);
-    setMessage('');
-
-    try {
-      const res = await fetch('/api/books/upload', {
-        method: 'POST',
-        body: formData
-      });
-      const result = await res.json();
-      
-      if (result.success) {
-        setMessage('✅ Book uploaded successfully!');
-        setTimeout(() => {
-          setMessage('');
-          onUploaded(); // Refresh admin list
-        }, 2000);
-      } else {
-        setMessage('❌ ' + (result.error || 'Upload failed'));
-      }
-    } catch (err: any) {
-      setMessage('❌ Network error. Check connection and retry.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-      <h3 style={{ marginTop: 0 }}>📤 Upload Your Book</h3>
-      {message && (
-        <div style={{ 
-          margin: '10px 0', 
-          padding: '12px', 
-          background: message.includes('✅') ? '#d4edda' : '#f8d7da',
-          color: message.includes('✅') ? '#155724' : '#721c24',
-          borderRadius: '4px'
-        }}>
-          {message}
-        </div>
-      )}
-      <form onSubmit={handleSubmit} encType="multipart/form-data">
-        <input name="title" placeholder="Book Title *" required style={{ width: '100%', margin: '8px 0', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }} />
-        <input name="authorName" placeholder="Author Name *" required style={{ width: '100%', margin: '8px 0', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }} />
-        <input name="pdf" type="file" accept=".pdf" required style={{ width: '100%', margin: '8px 0', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }} />
-        <button type="submit" disabled={uploading} style={{ width: '100%', padding: '12px', background: uploading ? '#999' : '#667eea', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: uploading ? 'not-allowed' : 'pointer' }}>
-          {uploading ? '📤 Uploading...' : '📤 Upload Book'}
-        </button>
-      </form>
-      <p style={{ marginTop: '15px', fontSize: '13px', color: '#666' }}>💡 Tip: PDF under 100KB uploads fastest on mobile</p>
     </div>
   );
 }
