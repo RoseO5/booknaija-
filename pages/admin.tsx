@@ -11,6 +11,7 @@ export default function Admin() {
   const [authors, setAuthors] = useState<any[]>([]);
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
+  const [revenue, setRevenue] = useState<any>(null);
 
   useEffect(() => {
     if (!authenticated) return;
@@ -30,6 +31,10 @@ export default function Admin() {
 
     if (activeTab === 'authors') {
       fetch('/api/authors/list').then(r => r.json()).then(data => setAuthors(data.authors || [])).catch(() => {});
+    }
+
+    if (activeTab === 'revenue') {
+      fetch('/api/dashboard/stats').then(r => r.json()).then(data => setRevenue(data)).catch(() => {});
     }
   }, [authenticated, activeTab]);
 
@@ -78,8 +83,9 @@ export default function Admin() {
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {[
           { id: 'analytics', label: '📊 Analytics', color: '#6c757d' },
+          { id: 'revenue', label: '💰 Revenue', color: '#28a745' },
           { id: 'upload', label: '📤 My Uploads', color: '#667eea' },
-          { id: 'approve', label: `✅ Approve (${stats.pending})`, color: '#28a745' },
+          { id: 'approve', label: `✅ Approve (${stats.pending})`, color: '#17a2b8' },
           { id: 'abuse', label: `🛡️ Abuse (${stats.flagged})`, color: '#dc3545' },
           { id: 'authors', label: `✍️ Authors (${authors.length})`, color: '#fd7e14' }
         ].map(tab => (
@@ -111,11 +117,94 @@ export default function Admin() {
               <p style={{ margin: '5px 0 0', color: '#666' }}>Authors</p>
             </div>
           </div>
-          <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
-            <h3>📈 System Status</h3>
-            <p style={{ color: '#666' }}>All systems operational. Prize pool and reading tracking active.</p>
-            <a href="/leaderboard" style={{ color: '#667eea', fontWeight: 'bold' }}>View Public Leaderboard →</a>
-          </div>
+        </div>
+      )}
+
+      {/* REVENUE TAB */}
+      {activeTab === 'revenue' && (
+        <div>
+          <h3>💰 Revenue & Author Payouts</h3>
+          
+          {!revenue ? (
+            <p>Loading revenue data...</p>
+          ) : (
+            <>
+              {/* Revenue Overview */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px' }}>
+                <div style={{ background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center' }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9 }}>Total Revenue</div>
+                  <div style={{ fontSize: '28px', fontWeight: 'bold' }}>₦{revenue.revenue?.estimatedMonthly?.toLocaleString() || 0}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8 }}>Monthly</div>
+                </div>
+                <div style={{ background: 'linear-gradient(135deg, #fd7e14 0%, #ffc107 100%)', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center' }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9 }}>Author Pool</div>
+                  <div style={{ fontSize: '28px', fontWeight: 'bold' }}>₦{revenue.revenue?.authorPool?.toLocaleString() || 0}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8 }}>50% of revenue</div>
+                </div>
+                <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center' }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9 }}>Platform Revenue</div>
+                  <div style={{ fontSize: '28px', fontWeight: 'bold' }}>₦{revenue.revenue?.platformRevenue?.toLocaleString() || 0}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8 }}>50% of revenue</div>
+                </div>
+                <div style={{ background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center' }}>
+                  <div style={{ fontSize: '14px', opacity: 0.9 }}>Your Profit</div>
+                  <div style={{ fontSize: '28px', fontWeight: 'bold' }}>₦{revenue.revenue?.platformProfit?.toLocaleString() || 0}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8 }}>After prize pool</div>
+                </div>
+              </div>
+
+              {/* Prize Pool Status */}
+              <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #ffeaa7' }}>
+                <h4 style={{ marginTop: 0, color: '#856404' }}>🏆 Reader Prize Pool</h4>
+                <p style={{ color: '#856404', margin: '10px 0' }}>
+                  <strong>₦{revenue.revenue?.prizePool?.toLocaleString() || 0}</strong> available for readers
+                </p>
+                <p style={{ color: '#856404', margin: '5px 0', fontSize: '14px' }}>
+                  Status: <strong>{revenue.prizeStatus?.nextDraw}</strong>
+                </p>
+                <p style={{ color: '#856404', margin: '5px 0', fontSize: '14px' }}>
+                  Eligible readers: <strong>{revenue.summary?.eligibleForPrize || 0}</strong> (need 3+ to draw)
+                </p>
+              </div>
+
+              {/* Author Distribution Info */}
+              <div style={{ background: '#e7f3ff', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #b8daff' }}>
+                <h4 style={{ marginTop: 0, color: '#004085' }}>✍️ Author Payout Distribution</h4>
+                <p style={{ color: '#004085', margin: '10px 0' }}>
+                  <strong>Method:</strong> {revenue.authorPoolDistribution?.method}
+                </p>
+                <p style={{ color: '#004085', margin: '5px 0', fontSize: '14px' }}>
+                  Total pool: <strong>₦{revenue.authorPoolDistribution?.totalPool?.toLocaleString() || 0}</strong>
+                </p>
+                <p style={{ color: '#004085', margin: '5px 0', fontSize: '14px' }}>
+                  {revenue.authorPoolDistribution?.note}
+                </p>
+              </div>
+
+              {/* Stats Summary */}
+              <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
+                <h4 style={{ marginTop: 0, color: '#333' }}>📊 Platform Stats</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+                  <div>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea' }}>{revenue.summary?.totalReaders || 0}</div>
+                    <div style={{ fontSize: '14px', color: '#666' }}>Total Readers</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>{revenue.summary?.activeSubscriptions || 0}</div>
+                    <div style={{ fontSize: '14px', color: '#666' }}>Active Subscriptions</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#fd7e14' }}>{revenue.summary?.totalReads || 0}</div>
+                    <div style={{ fontSize: '14px', color: '#666' }}>Total Reads</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc3545' }}>{revenue.summary?.totalMinutes || 0}</div>
+                    <div style={{ fontSize: '14px', color: '#666' }}>Minutes Read</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -150,7 +239,7 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ABUSE DETECTION TAB */}
+      {/* ABUSE TAB */}
       {activeTab === 'abuse' && (
         <div>
           <h3>🛡️ Abuse Detection & Moderation</h3>
@@ -197,18 +286,17 @@ export default function Admin() {
         </div>
       )}
 
-      {/* AUTHORS MANAGEMENT TAB */}
+      {/* AUTHORS TAB */}
       {activeTab === 'authors' && (
         <div>
           <h3>✍️ Registered Authors</h3>
           <p style={{ color: '#666', marginBottom: '20px' }}>
-            Authors self-register via <a href="/author-onboarding" style={{ color: '#667eea' }}>/author-onboarding</a>. You can manage them here.
+            Authors self-register via <a href="/author-onboarding" style={{ color: '#667eea' }}>/author-onboarding</a>
           </p>
           
           {authors.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '12px' }}>
               <p style={{ color: '#666' }}>No authors registered yet.</p>
-              <a href="/author-onboarding" style={{ color: '#667eea', fontWeight: 'bold' }}>Share onboarding link →</a>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
