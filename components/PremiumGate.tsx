@@ -19,7 +19,6 @@ export default function PremiumGate({ children }: { children: React.ReactNode })
       .then(r => r.json())
       .then(data => {
         if (data.activated) {
-          // Payment confirmed! Reload page to show premium content
           window.location.reload();
         }
       })
@@ -43,6 +42,8 @@ export default function PremiumGate({ children }: { children: React.ReactNode })
   }
 
   const hasActiveSubscription = session?.user?.subscription?.active;
+  const expiresAt = session?.user?.subscription?.expiresAt ? new Date(session.user.subscription.expiresAt) : null;
+  const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
   
   const handleSubscribe = async () => {
     if (!session?.user) return;
@@ -82,6 +83,11 @@ export default function PremiumGate({ children }: { children: React.ReactNode })
     <>
       <div style={{background:'#d4edda',padding:'10px',borderRadius:'8px',marginBottom:'15px',fontSize:'13px',color:'#155724'}}>
         ✅ Premium Active • Access: <strong>{session?.user?.subscription?.accessCard}</strong>
+        {daysLeft > 0 && daysLeft <= 7 && (
+          <span style={{marginLeft:'10px',color:'#856404'}}>
+            ⚠️ Expires in {daysLeft} day{daysLeft > 1 ? 's' : ''}
+          </span>
+        )}
       </div>
       {children}
     </>
