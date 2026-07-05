@@ -51,6 +51,14 @@ export default function Upload() {
         <a href="/author-onboarding" style={{display:'inline-block',padding:'12px 30px',background:'#fd7e14',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
           ✍️ Complete Author Registration
         </a>
+        
+        {/* Authors WhatsApp Link for Non-Onboarded Authors */}
+        <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px'}}>
+          <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Join our Authors Community</p>
+          <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
+            Join Authors WhatsApp Group
+          </a>
+        </div>
       </div>
     );
   }
@@ -109,6 +117,14 @@ export default function Upload() {
           {uploading ? '📤 Uploading...' : '📤 Upload Book'}
         </button>
       </form>
+
+      {/* Authors WhatsApp Link for Onboarded Authors */}
+      <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px', textAlign:'center'}}>
+        <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Connect with other Authors</p>
+        <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
+          Join Authors WhatsApp Group
+        </a>
+      </div>
     </div>
   );
 }
