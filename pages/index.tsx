@@ -49,12 +49,28 @@ export default function Home() {
       {/* Why BookNaija Section */}
       <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '20px', borderRadius: '12px', marginBottom: '30px' }}>
         <h3 style={{ marginTop: 0, color: '#333' }}>✨ Why BookNaija?</h3>
-        <ul style={{ color: '#666', lineHeight: '1.8', paddingLeft: '20px' }}>
+        <ul style={{ color: '#666', lineHeight: '1.8', paddingLeft: '20px', margin: 0 }}>
           <li>🇳🇬 Built for Nigerian readers & authors</li>
           <li>📱 Works on all phones, even with weak signal</li>
-          <li>🔒 Safe & moderated content</li>
+          <li>🔒 Safe, moderated, and CAC-compliant content</li>
           <li>💰 Authors upload free • Readers ₦1000/month</li>
         </ul>
+      </div>
+
+      {/* 🏆 READER REWARD PROGRAM (TRUST BUILDER) */}
+      <div style={{ textAlign: 'left', padding: '25px', background: 'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)', borderRadius: '12px', border: '1px solid #ffc107', marginBottom: '30px' }}>
+        <h3 style={{ marginTop: 0, color: '#856404', textAlign: 'center' }}>🏆 The Reader Reward Program</h3>
+        <p style={{ color: '#666', textAlign: 'center', marginBottom: '15px', fontSize: '14px' }}>
+          We believe in rewarding dedication, not luck. Our program celebrates committed readers.
+        </p>
+        <ul style={{ color: '#856404', lineHeight: '1.8', paddingLeft: '20px', margin: 0 }}>
+          <li><strong>Merit-Based:</strong> Read and review 50 books to qualify. No lotteries, no lucky draws.</li>
+          <li><strong>Bi-Annual Cycles:</strong> Reading cycles run for 6 months. Rewards are distributed strictly <strong>twice a year</strong> (June & December).</li>
+          <li><strong>₦5,000 Literary Grant:</strong> Awarded to readers who successfully complete the 50-book challenge.</li>
+        </ul>
+        <p style={{ fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '15px', marginBottom: 0, fontStyle: 'italic' }}>
+          *This is a loyalty reward for active reading and literacy promotion, not an investment or Ponzi scheme.
+        </p>
       </div>
 
       {/* WhatsApp Communities */}
@@ -64,43 +80,23 @@ export default function Home() {
           Connect with fellow readers and authors!
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Readers Group - Show to everyone */}
           <a 
             href="https://chat.whatsapp.com/IDewvgS4R724cJ0YkTt69O?mode=gi_t" 
             target="_blank" 
             rel="noopener noreferrer" 
-            style={{ 
-              display: 'block', 
-              padding: '12px', 
-              background: '#25D366', 
-              color: 'white', 
-              textDecoration: 'none', 
-              borderRadius: '8px', 
-              fontWeight: 'bold', 
-              textAlign: 'center' 
-            }}
+            style={{ display: 'block', padding: '12px', background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center' }}
           >
             📚 Readers WhatsApp Group
           </a>
           
-          {/* Authors Group - Only show if user is an author */}
           {userRole === 'author' && (
             <a 
               href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" 
               target="_blank" 
               rel="noopener noreferrer" 
-              style={{ 
-                display: 'block', 
-                padding: '12px', 
-                background: '#25D366', 
-                color: 'white', 
-                textDecoration: 'none', 
-                borderRadius: '8px', 
-                fontWeight: 'bold', 
-                textAlign: 'center' 
-              }}
+              style={{ display: 'block', padding: '12px', background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center' }}
             >
-              ✍️ Authors WhatsApp Group
+              ✍️ Authors WhatsApp Group (VIP)
             </a>
           )}
         </div>
@@ -109,18 +105,14 @@ export default function Home() {
       {/* Footer with Contact Info */}
       <div style={{ marginTop: '40px', fontSize: '14px', color: '#999' }}>
         <p>© 2026 BookNaija • Made with 💚 for Nigerian storytellers</p>
-        <div style={{ marginTop: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
-          <p style={{ margin: '5px 0', color: '#666' }}>
+        <div style={{ marginTop: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'left' }}>
+          <p style={{ margin: '5px 0', color: '#666', textAlign: 'center' }}>
             <strong>📧 Email:</strong>{' '}
-            <a href="mailto:talktorose90@gmail.com" style={{ color: '#667eea' }}>
-              talktorose90@gmail.com
-            </a>
+            <a href="mailto:talktorose90@gmail.com" style={{ color: '#667eea' }}>talktorose90@gmail.com</a>
           </p>
-          <p style={{ margin: '5px 0', color: '#666' }}>
+          <p style={{ margin: '5px 0', color: '#666', textAlign: 'center' }}>
             <strong>📞 Phone:</strong>{' '}
-            <a href="tel:+2348142750728" style={{ color: '#667eea' }}>
-              08142750728
-            </a>
+            <a href="tel:+2348142750728" style={{ color: '#667eea' }}>08142750728</a>
           </p>
         </div>
         <p style={{ marginTop: '15px' }}>
