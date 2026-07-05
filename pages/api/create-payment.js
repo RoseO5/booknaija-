@@ -1,10 +1,23 @@
 import crypto from 'crypto';
+import clientPromise from '../../lib/mongodb';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
+    
     const reference = `BN-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
+    
+    // Save pending reference to DB so we can check it later
+    const client = await clientPromise;
+    const db = client.db('booknaija');
+    await db.collection('users').updateOne(
+      { email },
+      { $set: { 'subscription.pendingReference': reference } },
+      { upsert: true }
+    );
+
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },

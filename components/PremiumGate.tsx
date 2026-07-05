@@ -1,10 +1,35 @@
 'use client';
 import { useSession, signIn } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
 export default function PremiumGate({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
-  if (status === 'loading') return <div style={{textAlign:'center',padding:'30px'}}>Loading...</div>;
+  const [checkingPending, setCheckingPending] = useState(false);
+
+  // AUTO-CHECK: If user is logged in but not premium, check if they paid while away
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.email && !session?.user?.subscription?.active) {
+      setCheckingPending(true);
+      fetch('/api/check-pending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session.user.email })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.activated) {
+          // Payment confirmed! Reload page to show premium content
+          window.location.reload();
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingPending(false));
+    }
+  }, [status, session]);
+
+  if (status === 'loading' || checkingPending) return <div style={{textAlign:'center',padding:'30px'}}>Loading...</div>;
+  
   if (status === 'unauthenticated') {
     return (
       <div style={{textAlign:'center',padding:'30px',background:'#f8f9fa',borderRadius:'12px'}}>
@@ -16,7 +41,9 @@ export default function PremiumGate({ children }: { children: React.ReactNode })
       </div>
     );
   }
+
   const hasActiveSubscription = session?.user?.subscription?.active;
+  
   const handleSubscribe = async () => {
     if (!session?.user) return;
     setLoading(true);
@@ -31,6 +58,7 @@ export default function PremiumGate({ children }: { children: React.ReactNode })
       else alert('Error: ' + data.error);
     } catch (err) { alert('Network error'); } finally { setLoading(false); }
   };
+
   if (!hasActiveSubscription) {
     return (
       <div style={{textAlign:'center',padding:'30px',background:'#fff3cd',borderRadius:'12px',border:'1px solid #ffc107'}}>
@@ -45,9 +73,11 @@ export default function PremiumGate({ children }: { children: React.ReactNode })
           {loading ? '⏳ Processing...' : '💳 Pay ₦1000 with Paystack'}
         </button>
         <p style={{fontSize:'12px',color:'#666',marginTop:'15px'}}>🔒 Secure payment • Card, Bank Transfer, USSD accepted</p>
+        <p style={{fontSize:'11px',color:'#999',marginTop:'10px'}}>💡 If you already paid via transfer, just refresh this page!</p>
       </div>
     );
   }
+
   return (
     <>
       <div style={{background:'#d4edda',padding:'10px',borderRadius:'8px',marginBottom:'15px',fontSize:'13px',color:'#155724'}}>
