@@ -8,6 +8,7 @@ declare module 'next-auth' {
       subscription?: {
         active: boolean;
         accessCard: string | null;
+        expiresAt?: string | Date | null; // <--- Added this line
       };
     } & DefaultSession['user'];
   }
