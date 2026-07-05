@@ -5,9 +5,11 @@ export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState('analytics');
+  const [activeTab, setActiveTab] = useState('revenue');
   const [revenue, setRevenue] = useState<any>(null);
   const [readerProgress, setReaderProgress] = useState<any>(null);
+  const [sendingEmails, setSendingEmails] = useState(false);
+  const [emailResult, setEmailResult] = useState<any>(null);
 
   useEffect(() => {
     if (!authenticated) return;
@@ -37,6 +39,29 @@ export default function Admin() {
     const result = await res.json();
     if (result.valid) setAuthenticated(true);
     else { setLoginError('❌ Incorrect password'); setTimeout(() => setLoginError(''), 2000); }
+  };
+
+  const sendAuthorReports = async () => {
+    if (!confirm('Send monthly earnings reports to all authors?')) return;
+    
+    setSendingEmails(true);
+    setEmailResult(null);
+    
+    try {
+      const res = await fetch('/api/authors/send-reports', { method: 'POST' });
+      const result = await res.json();
+      setEmailResult(result);
+      
+      if (result.success) {
+        alert(`✅ Sent ${result.sent} reports successfully!`);
+      } else {
+        alert('❌ ' + (result.error || 'Failed to send reports'));
+      }
+    } catch (error) {
+      alert('❌ Network error');
+    } finally {
+      setSendingEmails(false);
+    }
   };
 
   const conductPrizeDraw = async () => {
@@ -102,6 +127,35 @@ export default function Admin() {
             </div>
           </div>
 
+          {/* SEND REPORTS BUTTON */}
+          <div style={{ background: '#e7f3ff', padding: '20px', borderRadius: '12px', marginBottom: '20px' }}>
+            <h4 style={{ marginTop: 0, color: '#004085' }}>📧 Author Reports</h4>
+            <p style={{ color: '#004085', marginBottom: '15px' }}>
+              Send monthly earnings reports to all authors automatically
+            </p>
+            <button 
+              onClick={sendAuthorReports}
+              disabled={sendingEmails}
+              style={{ 
+                padding: '12px 30px', 
+                background: sendingEmails ? '#999' : '#28a745', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: sendingEmails ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                fontSize: '16px'
+              }}
+            >
+              {sendingEmails ? '📧 Sending...' : '📧 Send Reports to All Authors'}
+            </button>
+            {emailResult && (
+              <p style={{ marginTop: '15px', color: '#155724' }}>
+                ✅ Sent {emailResult.sent} of {emailResult.total} reports
+              </p>
+            )}
+          </div>
+
           <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
             <h4>📊 Platform Stats</h4>
             <p><strong>Total Readers:</strong> {revenue.summary?.totalReaders}</p>
@@ -148,15 +202,6 @@ export default function Admin() {
                 </div>
               ))}
             </div>
-
-            <div style={{ background: '#e7f3ff', padding: '15px', borderRadius: '8px' }}>
-              <h4>📈 Progressing (20-39 books) - {readerProgress.categories?.progressing?.count} readers</h4>
-              {readerProgress.categories?.progressing?.readers?.slice(0, 5).map((r: any, i: number) => (
-                <div key={i} style={{ padding: '8px', background: 'white', borderRadius: '6px', marginBottom: '5px' }}>
-                  <strong>{r.name}</strong> - {r.booksRead} books ({r.progress})
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       )}
@@ -164,9 +209,9 @@ export default function Admin() {
       {/* AUTHORS TAB */}
       {activeTab === 'authors' && (
         <div>
-          <h3>✍️ Authors & Payouts</h3>
+          <h3>✍️ Authors</h3>
           <p>Authors can view their earnings at: <a href="/author-dashboard" style={{ color: '#667eea' }}>/author-dashboard</a></p>
-          <p style={{ color: '#666' }}>Share this link with your authors so they can track their earnings.</p>
+          <p style={{ color: '#666' }}>Or use the "📧 Send Reports" button in the Revenue tab to email them automatically.</p>
         </div>
       )}
 
