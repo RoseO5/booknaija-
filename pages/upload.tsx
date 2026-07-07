@@ -51,7 +51,7 @@ export default function Upload() {
         <a href="/author-onboarding" style={{display:'inline-block',padding:'12px 30px',background:'#fd7e14',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
           ✍️ Complete Author Registration
         </a>
-        
+
         {/* Authors WhatsApp Link for Non-Onboarded Authors */}
         <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px'}}>
           <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Join our Authors Community</p>
@@ -67,7 +67,7 @@ export default function Upload() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const pdfFile = formData.get('pdf') as File | null;
-    
+
     if (!pdfFile || !pdfFile.name) {
       setMessage('❌ Please select a PDF file');
       return;
@@ -82,7 +82,7 @@ export default function Upload() {
         body: formData
       });
       const result = await res.json();
-      
+
       if (result.success) {
         setMessage('✅ ' + (result.message || 'Book uploaded! Pending admin approval.'));
         setTimeout(() => window.location.href = '/books', 2000);
@@ -102,17 +102,23 @@ export default function Upload() {
       <div style={{background:'#d4edda',padding:'10px',borderRadius:'8px',marginBottom:'15px',fontSize:'13px',color:'#155724',textAlign:'center'}}>
         ✅ Welcome, {session?.user?.name}! Your uploads go to admin for approval.
       </div>
-      
+
       {message && (
         <div style={{margin:'10px 0',padding:'12px',background:message.includes('✅')?'#d4edda':'#f8d7da',color:message.includes('✅')?'#155724':'#721c24',borderRadius:'4px'}}>
           {message}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} encType="multipart/form-data">
         <input name="title" placeholder="Book Title *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
         <input name="authorName" placeholder="Author Name *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
+        
+        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image):</label>
+        <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
+        
+        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF) *</label>
         <input name="pdf" type="file" accept=".pdf" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
+        
         <button type="submit" disabled={uploading} style={{width:'100%',padding:'12px',background:uploading?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer'}}>
           {uploading ? '📤 Uploading...' : '📤 Upload Book'}
         </button>
