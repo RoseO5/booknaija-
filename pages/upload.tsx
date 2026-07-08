@@ -7,9 +7,9 @@ export default function Upload() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [authorStatus, setAuthorStatus] = useState<{isOnboarded: boolean; checking: boolean}>({isOnboarded: false, checking: true});
 
-  // Check if user is an onboarded author
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email) {
       fetch('/api/authors/check-status', {
@@ -41,7 +41,6 @@ export default function Upload() {
     );
   }
 
-  // If not onboarded as author, redirect to onboarding
   if (!authorStatus.isOnboarded) {
     return (
       <div style={{padding:'40px',textAlign:'center',maxWidth:'500px',margin:'50px auto',fontFamily:'Arial'}}>
@@ -52,8 +51,6 @@ export default function Upload() {
         <a href="/author-onboarding" style={{display:'inline-block',padding:'12px 30px',background:'#fd7e14',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
           ✍️ Complete Author Registration
         </a>
-
-        {/* Authors WhatsApp Link for Non-Onboarded Authors */}
         <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px'}}>
           <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Join our Authors Community</p>
           <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
@@ -64,39 +61,53 @@ export default function Upload() {
     );
   }
 
+  const handleFileChange = (e: any) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('❌ File is too large. Please keep it under 10MB.');
+        e.target.value = '';
+        return;
+      }
+      setSelectedFile(file);
+      setMessage('');
+    }
+  };
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    setMessage('');
-    setProgress(0);
-    
-    const formData = new FormData(e.currentTarget);
-    const pdfFile = formData.get('pdf') as File | null;
-
-    // ✅ Client-side validation
-    if (!pdfFile || !pdfFile.name) {
+    if (!selectedFile) {
       setMessage('❌ Please select a PDF file');
       return;
     }
-    if (pdfFile.size > 10 * 1024 * 1024) { // 10MB limit
-      setMessage('❌ File is too large. Please keep it under 10MB.');
-      return;
+
+    setMessage('');
+    setProgress(0);
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('title', e.currentTarget.title.value);
+    formData.append('authorName', e.currentTarget.authorName.value);
+    formData.append('pdf', selectedFile);
+    
+    // Add cover if selected
+    const coverInput = e.currentTarget.cover as HTMLInputElement;
+    if (coverInput.files && coverInput.files[0]) {
+      formData.append('cover', coverInput.files[0]);
     }
 
-    setUploading(true);
-    setProgress(10); // Start progress
-
     try {
-      // Simulate progress while waiting for server
-      const interval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 90));
-      }, 500);
+      // Use AbortController to handle timeout manually
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
 
       const res = await fetch('/api/books/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: controller.signal
       });
       
-      clearInterval(interval);
+      clearTimeout(timeoutId);
       setProgress(100);
       const result = await res.json();
 
@@ -107,7 +118,11 @@ export default function Upload() {
         setMessage('❌ ' + (result.error || 'Upload failed'));
       }
     } catch (err: any) {
-      setMessage('❌ Connection lost. Please check your internet and try again. If the file is large, try using Wi-Fi.');
+      if (err.name === 'AbortError') {
+        setMessage('⏳ Upload timed out. The server is busy. Please try again in a moment.');
+      } else {
+        setMessage('❌ Connection lost. Please check your internet and try again.');
+      }
     } finally {
       setUploading(false);
     }
@@ -143,14 +158,19 @@ export default function Upload() {
         <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
         
         <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF) *</label>
-        <input name="pdf" type="file" accept=".pdf" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
+        <input 
+          type="file" 
+          accept=".pdf" 
+          onChange={handleFileChange} 
+          disabled={uploading}
+          style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} 
+        />
         
-        <button type="submit" disabled={uploading} style={{width:'100%',padding:'12px',background:uploading?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer'}}>
+        <button type="submit" disabled={uploading || !selectedFile} style={{width:'100%',padding:'12px',background:(uploading || !selectedFile)?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer'}}>
           {uploading ? '⏳ Uploading...' : '📤 Upload Book'}
         </button>
       </form>
 
-      {/* Authors WhatsApp Link for Onboarded Authors */}
       <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px', textAlign:'center'}}>
         <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Connect with other Authors</p>
         <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
