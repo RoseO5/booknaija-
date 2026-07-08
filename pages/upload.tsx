@@ -6,6 +6,7 @@ export default function Upload() {
   const { data: session, status } = useSession();
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
+  const [step, setStep] = useState('');
   const [authorStatus, setAuthorStatus] = useState<{isOnboarded: boolean; checking: boolean}>({isOnboarded: false, checking: true});
 
   useEffect(() => {
@@ -49,6 +50,12 @@ export default function Upload() {
         <a href="/author-onboarding" style={{display:'inline-block',padding:'12px 30px',background:'#fd7e14',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
           ✍️ Complete Author Registration
         </a>
+        <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px'}}>
+          <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Join our Authors Community</p>
+          <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
+            Join Authors WhatsApp Group
+          </a>
+        </div>
       </div>
     );
   }
@@ -56,31 +63,87 @@ export default function Upload() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setMessage('');
+    setStep('1. Checking file sizes...');
     setUploading(true);
-    
-    // Use native FormData from the event
+
     const formData = new FormData(e.currentTarget);
-    
+    const pdfFile = formData.get('pdf') as File;
+    const coverFile = formData.get('cover') as File;
+    const title = formData.get('title') as string;
+    const authorName = formData.get('authorName') as string;
+
+    if (!pdfFile || !pdfFile.name) {
+      setMessage('❌ Please select a PDF file');
+      setUploading(false);
+      setStep('');
+      return;
+    }
+
+    // ✅ File Size Validation
+    const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20MB
+    const MAX_COVER_SIZE = 5 * 1024 * 1024; // 5MB
+
+    if (pdfFile.size > MAX_PDF_SIZE) {
+      setMessage(`❌ PDF is too large (${(pdfFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
+      setUploading(false);
+      setStep('');
+      return;
+    }
+
+    if (coverFile && coverFile.size > MAX_COVER_SIZE) {
+      setMessage(`❌ Cover image is too large (${(coverFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 5MB.`);
+      setUploading(false);
+      setStep('');
+      return;
+    }
+
     try {
+      // STEP 1: Get the direct upload link (Selar Method)
+      setStep('2. Getting secure link from Cloudflare...');
+      const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
+      const urlData = await urlRes.json();
+      
+      if (!urlData.uploadUrl) throw new Error('Failed to get upload link from server.');
+
+      // STEP 2: Upload PDF DIRECTLY to Cloudflare R2
+      setStep('3. Uploading book directly to Cloud Storage...');
+      const directUpload = await fetch(urlData.uploadUrl, {
+        method: 'PUT',
+        body: pdfFile,
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+      });
+
+      if (!directUpload.ok) throw new Error('Direct upload to storage failed. Check network.');
+
+      // STEP 3: Send metadata + Cover to our backend to save in MongoDB
+      setStep('4. Saving book details to database...');
+      const finalData = new FormData();
+      finalData.append('title', title);
+      finalData.append('authorName', authorName);
+      finalData.append('pdfUrl', urlData.publicUrl); // Send the R2 link, not the file!
+      if (coverFile && coverFile.name) finalData.append('cover', coverFile);
+
       const res = await fetch('/api/books/upload', {
         method: 'POST',
-        body: formData,
-        // Keep alive helps with mobile networks
-        keepalive: true 
+        body: finalData
       });
       
       const result = await res.json();
 
       if (result.success) {
-        setMessage('✅ Book uploaded! Redirecting...');
+        setMessage('✅ ' + (result.message || 'Book uploaded successfully! Pending admin approval.'));
         setTimeout(() => window.location.href = '/books', 2000);
       } else {
         setMessage('❌ ' + (result.error || 'Upload failed'));
       }
     } catch (err: any) {
-      setMessage('❌ Network error. Please check your connection.');
+      console.error(err);
+      setMessage('❌ Error: ' + err.message + '. Please try again.');
     } finally {
       setUploading(false);
+      setStep('');
     }
   };
 
@@ -91,26 +154,44 @@ export default function Upload() {
         ✅ Welcome, {session?.user?.name}!
       </div>
 
+      <div style={{background:'#e7f3ff',padding:'10px',borderRadius:'8px',marginBottom:'15px',fontSize:'12px',color:'#004085', textAlign:'center'}}>
+        📏 <strong>File Limits:</strong> PDF max 20MB • Cover max 5MB
+      </div>
+
       {message && (
         <div style={{margin:'10px 0',padding:'12px',background:message.includes('✅')?'#d4edda':'#f8d7da',color:message.includes('✅')?'#155724':'#721c24',borderRadius:'4px'}}>
           {message}
         </div>
       )}
 
+      {step && (
+        <div style={{margin:'10px 0',padding:'12px',background:'#fff3cd',color:'#856404',borderRadius:'4px',textAlign:'center',fontSize:'14px'}}>
+          ⏳ {step}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
-        <input name="title" placeholder="Book Title *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
-        <input name="authorName" placeholder="Author Name *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
+        <input name="title" placeholder="Book Title *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
+        <input name="authorName" placeholder="Author Name *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
         
-        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image):</label>
-        <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
+        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image, max 5MB):</label>
+        <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
         
-        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF) *</label>
-        <input name="pdf" type="file" accept=".pdf" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px'}} />
+        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF, max 20MB) *</label>
+        <input name="pdf" type="file" accept=".pdf" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
         
-        <button type="submit" disabled={uploading} style={{width:'100%',padding:'12px',background:uploading?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer'}}>
-          {uploading ? '⏳ Uploading... Please wait...' : '📤 Upload Book'}
+        <button type="submit" disabled={uploading} style={{width:'100%',padding:'12px',background:uploading?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer',marginTop:'10px'}}>
+          {uploading ? '⏳ Processing...' : '📤 Upload Book'}
         </button>
       </form>
+
+      {/* Authors WhatsApp Link for Onboarded Authors */}
+      <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px', textAlign:'center'}}>
+        <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Connect with other Authors</p>
+        <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
+          Join Authors WhatsApp Group
+        </a>
+      </div>
     </div>
   );
 }
