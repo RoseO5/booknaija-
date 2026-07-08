@@ -1,6 +1,15 @@
 import { v2 as cloudinary } from 'cloudinary';
 import clientPromise from '../../../lib/mongodb';
 
+// 🚀 INCREASE BODY SIZE LIMIT (Fixes "Failed to fetch" for large cover images)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 // Configure Cloudinary (covers only)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
