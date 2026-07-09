@@ -1,6 +1,13 @@
 import { v2 as cloudinary } from 'cloudinary';
 import clientPromise from '../../../lib/mongodb';
 
+// 🚀 CRITICAL: Disable Next.js body parser to avoid conflicts with native formData
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 // Configure Cloudinary (covers only)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -11,40 +18,42 @@ cloudinary.config({
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  console.log('🚀 Upload API called');
+  console.log('🚀 [UPLOAD API] Request received');
 
   try {
-    // Parse form data
-    console.log('📝 Parsing form data...');
+    // Parse form data natively
+    console.log('📝 [UPLOAD API] Parsing form data...');
     const formData = await req.formData();
     
-    const title = formData.get('title') || 'Untitled';
-    const author = formData.get('authorName') || 'Anonymous';
+    const title = formData.get('title');
+    const author = formData.get('authorName');
     const pdfUrl = formData.get('pdfUrl');
     const coverFile = formData.get('cover');
 
-    console.log('✅ Form data parsed:', { title, author, pdfUrl: pdfUrl ? 'exists' : 'missing' });
+    console.log('✅ [UPLOAD API] Data received:', { 
+      title, 
+      author,
+      pdfUrl: pdfUrl ? 'Present' : 'Missing',
+      hasCover: coverFile && coverFile.name ? true : false
+    });
 
     if (!pdfUrl) {
-      console.error('❌ No PDF URL provided');
-      return res.status(400).json({ error: 'PDF URL required' });
+      console.error('❌ [UPLOAD API] Missing PDF URL');
+      return res.status(400).json({ error: 'PDF URL is missing. The direct upload may have failed.' });
     }
 
     // 🛡️ Abuse Detection
     const spamKeywords = ['casino', 'betting', 'loan', 'xxx', 'free money', 'crypto scam', 'hack'];
-    const titleLower = title.toLowerCase();
+    const titleLower = (title || '').toLowerCase();
     const hasSpam = spamKeywords.some(k => titleLower.includes(k));
-    const abuseFlags = [];
-    if (hasSpam) abuseFlags.push('spam-title');
+    const abuseFlags = hasSpam ? ['spam-title'] : [];
 
-    // Upload Cover to Cloudinary (if provided)
-    let coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title);
+    // Upload Cover to Cloudinary
+    let coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title || 'Book');
     
     if (coverFile && coverFile.name) {
-      console.log('🖼️ Uploading cover to Cloudinary...', coverFile.name, 'Size:', coverFile.size);
-      
+      console.log('🖼️ [UPLOAD API] Processing cover image...', coverFile.name, 'Size:', coverFile.size);
       try {
-        // Convert to base64 for more reliable upload
         const arrayBuffer = await coverFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const base64 = `data:${coverFile.type};base64,${buffer.toString('base64')}`;
@@ -52,27 +61,26 @@ export default async function handler(req, res) {
         const coverResult = await cloudinary.uploader.upload(base64, {
           resource_type: 'image',
           folder: 'booknaija/covers',
-          public_id: `cover_${Date.now()}_${title.replace(/\s+/g, '_')}`,
+          public_id: `cover_${Date.now()}`,
           overwrite: false,
           timeout: 60000 // 60 second timeout
         });
-        
         coverUrl = coverResult.secure_url;
-        console.log('✅ Cover uploaded:', coverUrl);
-      } catch (coverError) {
-        console.error('❌ Cover upload failed:', coverError);
+        console.log('✅ [UPLOAD API] Cover uploaded to Cloudinary:', coverUrl);
+      } catch (err) {
+        console.error('❌ [UPLOAD API] Cover upload failed, using placeholder:', err.message);
         // Continue without cover - don't fail the whole upload
-        coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title);
       }
     }
 
     // Save to MongoDB
-    console.log('💾 Saving to MongoDB...');
+    console.log('💾 [UPLOAD API] Saving to MongoDB...');
     const client = await clientPromise;
     const db = client.db('booknaija');
+    
     const result = await db.collection('books').insertOne({
       title,
-      authorName: author,
+      authorName: author || 'Anonymous',
       pdfUrl,
       coverUrl,
       status: abuseFlags.length > 0 ? 'flagged' : 'pending',
@@ -82,15 +90,16 @@ export default async function handler(req, res) {
       createdAt: new Date()
     });
 
-    console.log('✅ Book saved to MongoDB:', result.insertedId);
-
+    console.log('✅ [UPLOAD API] Success! Book saved with ID:', result.insertedId);
+    
     res.status(200).json({
       success: true,
       message: abuseFlags.length > 0 ? '📝 Book uploaded & flagged for review' : '📝 Book uploaded! Pending admin approval.',
       bookId: result.insertedId
     });
+
   } catch (error) {
-    console.error('💥 Upload error:', error);
+    console.error('💥 [UPLOAD API] Critical Error:', error);
     res.status(500).json({ error: error.message || 'Upload failed' });
   }
 }
