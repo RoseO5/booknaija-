@@ -81,7 +81,7 @@ export default function Upload() {
 
     // ✅ File Size Validation
     const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20MB
-    const MAX_COVER_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_COVER_SIZE = 2 * 1024 * 1024; // 2MB (Reduced for mobile stability)
 
     if (pdfFile.size > MAX_PDF_SIZE) {
       setMessage(`❌ PDF is too large (${(pdfFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
@@ -91,7 +91,7 @@ export default function Upload() {
     }
 
     if (coverFile && coverFile.size > MAX_COVER_SIZE) {
-      setMessage(`❌ Cover image is too large (${(coverFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 5MB.`);
+      setMessage(`❌ Cover image is too large (${(coverFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 2MB for mobile stability.`);
       setUploading(false);
       setStep('');
       return;
@@ -102,7 +102,7 @@ export default function Upload() {
       setStep('2. Getting secure link from Cloudflare...');
       const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
       const urlData = await urlRes.json();
-      
+
       if (!urlData.uploadUrl) throw new Error('Failed to get upload link from server.');
 
       // STEP 2: Upload PDF DIRECTLY to Cloudflare R2
@@ -122,14 +122,20 @@ export default function Upload() {
       const finalData = new FormData();
       finalData.append('title', title);
       finalData.append('authorName', authorName);
-      finalData.append('pdfUrl', urlData.publicUrl); // Send the R2 link, not the file!
+      finalData.append('pdfUrl', urlData.publicUrl);
       if (coverFile && coverFile.name) finalData.append('cover', coverFile);
 
       const res = await fetch('/api/books/upload', {
         method: 'POST',
         body: finalData
       });
-      
+
+      // ✅ Check if response is OK before parsing JSON
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server error ${res.status}: ${errorText}`);
+      }
+
       const result = await res.json();
 
       if (result.success) {
@@ -155,7 +161,7 @@ export default function Upload() {
       </div>
 
       <div style={{background:'#e7f3ff',padding:'10px',borderRadius:'8px',marginBottom:'15px',fontSize:'12px',color:'#004085', textAlign:'center'}}>
-        📏 <strong>File Limits:</strong> PDF max 20MB • Cover max 5MB
+        📏 <strong>File Limits:</strong> PDF max 20MB • Cover max 2MB
       </div>
 
       {message && (
@@ -173,13 +179,13 @@ export default function Upload() {
       <form onSubmit={handleSubmit}>
         <input name="title" placeholder="Book Title *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
         <input name="authorName" placeholder="Author Name *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
-        
-        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image, max 5MB):</label>
+
+        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image, max 2MB):</label>
         <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
-        
+
         <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF, max 20MB) *</label>
         <input name="pdf" type="file" accept=".pdf" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
-        
+
         <button type="submit" disabled={uploading} style={{width:'100%',padding:'12px',background:uploading?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer',marginTop:'10px'}}>
           {uploading ? '⏳ Processing...' : '📤 Upload Book'}
         </button>
