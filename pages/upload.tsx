@@ -79,9 +79,9 @@ export default function Upload() {
       return;
     }
 
-    // ✅ File Size Validation
+    // ✅ File Size Validation (Reduced Cover Limit for Mobile Stability)
     const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20MB
-    const MAX_COVER_SIZE = 2 * 1024 * 1024; // 2MB (Reduced for mobile stability)
+    const MAX_COVER_SIZE = 2 * 1024 * 1024; // 2MB
 
     if (pdfFile.size > MAX_PDF_SIZE) {
       setMessage(`❌ PDF is too large (${(pdfFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
@@ -130,7 +130,7 @@ export default function Upload() {
         body: finalData
       });
 
-      // ✅ Check if response is OK before parsing JSON
+      // ✅ Check if response is OK before parsing JSON (Fixes "Failed to fetch" confusion)
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Server error ${res.status}: ${errorText}`);

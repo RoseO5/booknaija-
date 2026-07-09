@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           folder: 'booknaija/covers',
           public_id: `cover_${Date.now()}`,
           overwrite: false,
-          timeout: 60000 // 60 second timeout
+          timeout: 60000 // 60 second timeout for slow networks
         });
         coverUrl = coverResult.secure_url;
         console.log('✅ [UPLOAD API] Cover uploaded to Cloudinary:', coverUrl);
