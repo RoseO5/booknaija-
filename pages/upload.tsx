@@ -7,7 +7,14 @@ export default function Upload() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
   const [step, setStep] = useState('');
+  const [logs, setLogs] = useState<string[]>([]);
   const [authorStatus, setAuthorStatus] = useState<{isOnboarded: boolean; checking: boolean}>({isOnboarded: false, checking: true});
+
+  // 📜 DEBUG HELPER: Adds logs to screen AND browser console
+  const addLog = (msg: string) => {
+    console.log(msg);
+    setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  };
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email) {
@@ -65,6 +72,8 @@ export default function Upload() {
     setMessage('');
     setStep('1. Checking files...');
     setUploading(true);
+    setLogs([]); // Clear previous logs
+    addLog('🚀 Starting upload process');
 
     const formData = new FormData(e.currentTarget);
     const pdfFile = formData.get('pdf') as File;
@@ -72,7 +81,10 @@ export default function Upload() {
     const title = formData.get('title') as string;
     const authorName = formData.get('authorName') as string;
 
+    addLog(`📝 Form data: Title="${title}", PDF=${!!pdfFile}, Cover=${!!coverFile}`);
+
     if (!pdfFile || !pdfFile.name) {
+      addLog('❌ No PDF file selected');
       setMessage('❌ Please select a PDF file');
       setUploading(false);
       setStep('');
@@ -84,6 +96,7 @@ export default function Upload() {
     const MAX_COVER_SIZE = 5 * 1024 * 1024; // 5MB
 
     if (pdfFile.size > MAX_PDF_SIZE) {
+      addLog(`❌ PDF too large: ${pdfFile.size} bytes`);
       setMessage(`❌ PDF is too large (${(pdfFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
       setUploading(false);
       setStep('');
@@ -91,6 +104,7 @@ export default function Upload() {
     }
 
     if (coverFile && coverFile.size > MAX_COVER_SIZE) {
+      addLog(`❌ Cover too large: ${coverFile.size} bytes`);
       setMessage(`❌ Cover image is too large (${(coverFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 5MB.`);
       setUploading(false);
       setStep('');
@@ -102,33 +116,48 @@ export default function Upload() {
 
       // STEP 1: Upload Cover DIRECTLY to Cloudinary (True Selar Method)
       if (coverFile && coverFile.name) {
+        addLog('🖼️ Starting Cloudinary upload');
         setStep('2. Getting Cloudinary signature...');
-        const sigRes = await fetch('/api/get-cloudinary-signature');
-        const sigData = await sigRes.json();
+        
+        try {
+          const sigRes = await fetch('/api/get-cloudinary-signature');
+          addLog(`✅ Signature response: ${sigRes.status}`);
+          const sigData = await sigRes.json();
+          addLog(`✅ Got signature for ${sigData.cloud_name}`);
 
-        setStep('3. Uploading Cover directly to Cloudinary...');
-        const coverFormData = new FormData();
-        coverFormData.append('file', coverFile);
-        coverFormData.append('api_key', sigData.api_key);
-        coverFormData.append('timestamp', sigData.timestamp);
-        coverFormData.append('signature', sigData.signature);
-        coverFormData.append('folder', sigData.folder);
+          setStep('3. Uploading Cover directly to Cloudinary...');
+          const coverFormData = new FormData();
+          coverFormData.append('file', coverFile);
+          coverFormData.append('api_key', sigData.api_key);
+          coverFormData.append('timestamp', sigData.timestamp);
+          coverFormData.append('signature', sigData.signature);
+          coverFormData.append('folder', sigData.folder);
 
-        const coverRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, {
-          method: 'POST',
-          body: coverFormData
-        });
+          const coverRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, {
+            method: 'POST',
+            body: coverFormData
+          });
 
-        if (!coverRes.ok) throw new Error('Cover upload to Cloudinary failed');
-        const coverResult = await coverRes.json();
-        finalCoverUrl = coverResult.secure_url;
+          addLog(`✅ Cloudinary response: ${coverRes.status}`);
+
+          if (!coverRes.ok) throw new Error('Cover upload to Cloudinary failed');
+          const coverResult = await coverRes.json();
+          finalCoverUrl = coverResult.secure_url;
+          addLog('✅ Cover uploaded to Cloudinary');
+        } catch (coverErr: any) {
+          addLog(`❌ Cloudinary error: ${coverErr.message}`);
+          throw coverErr;
+        }
       }
 
       // STEP 2: Upload PDF DIRECTLY to Cloudflare R2
+      addLog('📄 Starting R2 upload');
       setStep('4. Getting R2 link...');
       const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
+      addLog(`✅ R2 URL response: ${urlRes.status}`);
       const urlData = await urlRes.json();
-      
+      addLog('✅ Got R2 upload link');
+
       if (!urlData.uploadUrl) throw new Error('Failed to get R2 upload link.');
 
       setStep('5. Uploading PDF directly to Cloudflare...');
@@ -138,27 +167,38 @@ export default function Upload() {
         headers: { 'Content-Type': 'application/pdf' }
       });
 
+      addLog(`✅ R2 upload response: ${directUpload.status}`);
       if (!directUpload.ok) throw new Error('PDF upload to Cloudflare failed');
+      addLog('✅ PDF uploaded to Cloudflare R2');
 
       // STEP 3: Send ONLY text links to backend (MongoDB)
+      addLog('💾 Starting MongoDB save');
       setStep('6. Saving book details to database...');
+      
+      const payload = {
+        title,
+        authorName,
+        pdfUrl: urlData.publicUrl,
+        coverUrl: finalCoverUrl
+      };
+      addLog(`📝 Payload: ${JSON.stringify(payload).substring(0, 100)}...`);
+
       const res = await fetch('/api/books/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          authorName,
-          pdfUrl: urlData.publicUrl,
-          coverUrl: finalCoverUrl
-        })
+        body: JSON.stringify(payload)
       });
+
+      addLog(`✅ Backend response: ${res.status}`);
 
       if (!res.ok) {
         const errorText = await res.text();
+        addLog(`❌ Backend error: ${errorText}`);
         throw new Error(`Server error ${res.status}: ${errorText}`);
       }
 
       const result = await res.json();
+      addLog(`✅ Backend success!`);
 
       if (result.success) {
         setMessage('✅ ' + (result.message || 'Book uploaded successfully! Pending admin approval.'));
@@ -167,11 +207,13 @@ export default function Upload() {
         setMessage('❌ ' + (result.error || 'Upload failed'));
       }
     } catch (err: any) {
+      addLog(`💥 CRITICAL ERROR: ${err.message}`);
       console.error(err);
       setMessage('❌ Error: ' + err.message + '. Please try again.');
     } finally {
       setUploading(false);
       setStep('');
+      addLog('🏁 Upload process finished.');
     }
   };
 
@@ -212,6 +254,13 @@ export default function Upload() {
           {uploading ? '⏳ Processing...' : '📤 Upload Book'}
         </button>
       </form>
+
+      {/* 📜 DEBUG LOG BOX FOR MOBILE */}
+      <div style={{marginTop:'20px', padding:'10px', background:'#1e1e1e', color:'#00ff00', fontFamily:'monospace', fontSize:'11px', maxHeight:'300px', overflowY:'scroll', borderRadius:'8px', whiteSpace:'pre-wrap', border:'1px solid #333'}}>
+        <strong style={{color:'#fff'}}>📜 Debug Logs (Scroll & Copy to me):</strong>
+        {'\n'}
+        {logs.length === 0 ? 'Waiting for upload...' : logs.join('\n')}
+      </div>
 
       {/* Authors WhatsApp Link for Onboarded Authors */}
       <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px', textAlign:'center'}}>
