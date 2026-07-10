@@ -63,7 +63,7 @@ export default function Upload() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setMessage('');
-    setStep('1. Checking file sizes...');
+    setStep('1. Checking files...');
     setUploading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -79,9 +79,9 @@ export default function Upload() {
       return;
     }
 
-    // ✅ File Size Validation (Reduced Cover Limit for Mobile Stability)
+    // ✅ File Size Validation
     const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20MB
-    const MAX_COVER_SIZE = 2 * 1024 * 1024; // 2MB
+    const MAX_COVER_SIZE = 5 * 1024 * 1024; // 5MB
 
     if (pdfFile.size > MAX_PDF_SIZE) {
       setMessage(`❌ PDF is too large (${(pdfFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
@@ -91,46 +91,68 @@ export default function Upload() {
     }
 
     if (coverFile && coverFile.size > MAX_COVER_SIZE) {
-      setMessage(`❌ Cover image is too large (${(coverFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 2MB for mobile stability.`);
+      setMessage(`❌ Cover image is too large (${(coverFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 5MB.`);
       setUploading(false);
       setStep('');
       return;
     }
 
     try {
-      // STEP 1: Get the direct upload link (Selar Method)
-      setStep('2. Getting secure link from Cloudflare...');
-      const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
-      const urlData = await urlRes.json();
+      let finalCoverUrl = '';
 
-      if (!urlData.uploadUrl) throw new Error('Failed to get upload link from server.');
+      // STEP 1: Upload Cover DIRECTLY to Cloudinary (True Selar Method)
+      if (coverFile && coverFile.name) {
+        setStep('2. Getting Cloudinary signature...');
+        const sigRes = await fetch('/api/get-cloudinary-signature');
+        const sigData = await sigRes.json();
+
+        setStep('3. Uploading Cover directly to Cloudinary...');
+        const coverFormData = new FormData();
+        coverFormData.append('file', coverFile);
+        coverFormData.append('api_key', sigData.api_key);
+        coverFormData.append('timestamp', sigData.timestamp);
+        coverFormData.append('signature', sigData.signature);
+        coverFormData.append('folder', sigData.folder);
+
+        const coverRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, {
+          method: 'POST',
+          body: coverFormData
+        });
+
+        if (!coverRes.ok) throw new Error('Cover upload to Cloudinary failed');
+        const coverResult = await coverRes.json();
+        finalCoverUrl = coverResult.secure_url;
+      }
 
       // STEP 2: Upload PDF DIRECTLY to Cloudflare R2
-      setStep('3. Uploading book directly to Cloud Storage...');
+      setStep('4. Getting R2 link...');
+      const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
+      const urlData = await urlRes.json();
+      
+      if (!urlData.uploadUrl) throw new Error('Failed to get R2 upload link.');
+
+      setStep('5. Uploading PDF directly to Cloudflare...');
       const directUpload = await fetch(urlData.uploadUrl, {
         method: 'PUT',
         body: pdfFile,
-        headers: {
-          'Content-Type': 'application/pdf',
-        },
+        headers: { 'Content-Type': 'application/pdf' }
       });
 
-      if (!directUpload.ok) throw new Error('Direct upload to storage failed. Check network.');
+      if (!directUpload.ok) throw new Error('PDF upload to Cloudflare failed');
 
-      // STEP 3: Send metadata + Cover to our backend to save in MongoDB
-      setStep('4. Saving book details to database...');
-      const finalData = new FormData();
-      finalData.append('title', title);
-      finalData.append('authorName', authorName);
-      finalData.append('pdfUrl', urlData.publicUrl);
-      if (coverFile && coverFile.name) finalData.append('cover', coverFile);
-
+      // STEP 3: Send ONLY text links to backend (MongoDB)
+      setStep('6. Saving book details to database...');
       const res = await fetch('/api/books/upload', {
         method: 'POST',
-        body: finalData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          authorName,
+          pdfUrl: urlData.publicUrl,
+          coverUrl: finalCoverUrl
+        })
       });
 
-      // ✅ Check if response is OK before parsing JSON (Fixes "Failed to fetch" confusion)
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Server error ${res.status}: ${errorText}`);
@@ -161,7 +183,7 @@ export default function Upload() {
       </div>
 
       <div style={{background:'#e7f3ff',padding:'10px',borderRadius:'8px',marginBottom:'15px',fontSize:'12px',color:'#004085', textAlign:'center'}}>
-        📏 <strong>File Limits:</strong> PDF max 20MB • Cover max 2MB
+        📏 <strong>File Limits:</strong> PDF max 20MB • Cover max 5MB
       </div>
 
       {message && (
@@ -180,7 +202,7 @@ export default function Upload() {
         <input name="title" placeholder="Book Title *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
         <input name="authorName" placeholder="Author Name *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
 
-        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image, max 2MB):</label>
+        <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image, max 5MB):</label>
         <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
 
         <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF, max 20MB) *</label>
