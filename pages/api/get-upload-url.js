@@ -18,19 +18,18 @@ export default async function handler(req, res) {
 
     // Create a unique path for the file
     const key = `books/${Date.now()}_${filename}`;
-    
-    // Create the command to upload
+
+    // ✅ FIXED: Removed ACL: 'public-read' because Cloudflare R2 does not support it.
+    // R2 uses bucket-level public access (via the pub-...r2.dev domain) instead.
     const command = new PutObjectCommand({
-      Bucket: 'booknaija-pdfs', // Your R2 bucket name
+      Bucket: 'booknaija-pdfs',
       Key: key,
-      ContentType: 'application/pdf',
-      // Important: Allow public read so readers can see it later
-      ACL: 'public-read' 
+      ContentType: 'application/pdf'
     });
 
     // Generate a link valid for 1 hour
     const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 3600 });
-    
+
     // The public URL where the book will live after upload
     const publicUrl = `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev/${key}`;
 
