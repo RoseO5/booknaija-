@@ -150,22 +150,21 @@ export default function Upload() {
       const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
       addLog(`✅ R2 URL response: ${urlRes.status}`);
       const urlData = await urlRes.json();
-      
-      // 🔍 NEW: Log the generated URL to see if it's broken (e.g., contains "undefined")
+
       addLog(`🔗 R2 Upload URL starts with: ${urlData.uploadUrl ? urlData.uploadUrl.substring(0, 60) + '...' : 'MISSING'}`);
 
       if (!urlData.uploadUrl) throw new Error('Failed to get R2 upload link.');
 
       setStep('5. Uploading PDF directly to Cloudflare...');
+      
+      // ✅ FIX: Removed headers entirely to prevent presigned URL signature mismatch
       const directUpload = await fetch(urlData.uploadUrl, {
         method: 'PUT',
-        body: pdfFile,
-        headers: { 'Content-Type': 'application/pdf' }
+        body: pdfFile
       });
 
       addLog(`✅ R2 upload response: ${directUpload.status}`);
       if (!directUpload.ok) {
-        // 🔍 NEW: Log the exact error text Cloudflare sends back
         const errText = await directUpload.text();
         addLog(`❌ R2 upload failed: ${directUpload.status} - ${errText}`);
         throw new Error(`PDF upload to Cloudflare failed: ${directUpload.status}`);
@@ -174,7 +173,7 @@ export default function Upload() {
 
       addLog('💾 Starting MongoDB save');
       setStep('6. Saving book details to database...');
-      
+
       const payload = { title, authorName, pdfUrl: urlData.publicUrl, coverUrl: finalCoverUrl };
       addLog(`📝 Payload ready`);
 

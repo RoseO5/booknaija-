@@ -19,14 +19,14 @@ export default async function handler(req, res) {
 
     const key = `books/${Date.now()}_${filename}`;
 
+    // ✅ FIX: Removed ContentType to prevent presigned URL signature mismatch
     const command = new PutObjectCommand({
       Bucket: 'booknaija-pdfs',
-      Key: key,
-      ContentType: 'application/pdf'
+      Key: key
     });
 
     const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 3600 });
-    
+
     // Hardcoded public URL as well
     const publicUrl = `https://pub-54a8b5ba385c6dab620cb7c3407abf4.r2.dev/${key}`;
 
