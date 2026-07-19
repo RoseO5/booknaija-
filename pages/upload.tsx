@@ -10,7 +10,6 @@ export default function Upload() {
   const [logs, setLogs] = useState<string[]>([]);
   const [authorStatus, setAuthorStatus] = useState<{isOnboarded: boolean; checking: boolean}>({isOnboarded: false, checking: true});
 
-  // 📜 DEBUG HELPER: Adds logs to screen AND browser console
   const addLog = (msg: string) => {
     console.log(msg);
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -72,7 +71,7 @@ export default function Upload() {
     setMessage('');
     setStep('1. Checking files...');
     setUploading(true);
-    setLogs([]); // Clear previous logs
+    setLogs([]);
     addLog('🚀 Starting upload process');
 
     const formData = new FormData(e.currentTarget);
@@ -91,9 +90,8 @@ export default function Upload() {
       return;
     }
 
-    // ✅ File Size Validation
-    const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20MB
-    const MAX_COVER_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_PDF_SIZE = 20 * 1024 * 1024;
+    const MAX_COVER_SIZE = 5 * 1024 * 1024;
 
     if (pdfFile.size > MAX_PDF_SIZE) {
       addLog(`❌ PDF too large: ${pdfFile.size} bytes`);
@@ -114,11 +112,9 @@ export default function Upload() {
     try {
       let finalCoverUrl = '';
 
-      // STEP 1: Upload Cover DIRECTLY to Cloudinary (True Selar Method)
       if (coverFile && coverFile.name) {
         addLog('🖼️ Starting Cloudinary upload');
         setStep('2. Getting Cloudinary signature...');
-        
         try {
           const sigRes = await fetch('/api/get-cloudinary-signature');
           addLog(`✅ Signature response: ${sigRes.status}`);
@@ -139,7 +135,6 @@ export default function Upload() {
           });
 
           addLog(`✅ Cloudinary response: ${coverRes.status}`);
-
           if (!coverRes.ok) throw new Error('Cover upload to Cloudinary failed');
           const coverResult = await coverRes.json();
           finalCoverUrl = coverResult.secure_url;
@@ -150,13 +145,14 @@ export default function Upload() {
         }
       }
 
-      // STEP 2: Upload PDF DIRECTLY to Cloudflare R2
       addLog('📄 Starting R2 upload');
       setStep('4. Getting R2 link...');
       const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
       addLog(`✅ R2 URL response: ${urlRes.status}`);
       const urlData = await urlRes.json();
-      addLog('✅ Got R2 upload link');
+      
+      // 🔍 NEW: Log the generated URL to see if it's broken (e.g., contains "undefined")
+      addLog(`🔗 R2 Upload URL starts with: ${urlData.uploadUrl ? urlData.uploadUrl.substring(0, 60) + '...' : 'MISSING'}`);
 
       if (!urlData.uploadUrl) throw new Error('Failed to get R2 upload link.');
 
@@ -168,20 +164,19 @@ export default function Upload() {
       });
 
       addLog(`✅ R2 upload response: ${directUpload.status}`);
-      if (!directUpload.ok) throw new Error('PDF upload to Cloudflare failed');
+      if (!directUpload.ok) {
+        // 🔍 NEW: Log the exact error text Cloudflare sends back
+        const errText = await directUpload.text();
+        addLog(`❌ R2 upload failed: ${directUpload.status} - ${errText}`);
+        throw new Error(`PDF upload to Cloudflare failed: ${directUpload.status}`);
+      }
       addLog('✅ PDF uploaded to Cloudflare R2');
 
-      // STEP 3: Send ONLY text links to backend (MongoDB)
       addLog('💾 Starting MongoDB save');
       setStep('6. Saving book details to database...');
       
-      const payload = {
-        title,
-        authorName,
-        pdfUrl: urlData.publicUrl,
-        coverUrl: finalCoverUrl
-      };
-      addLog(`📝 Payload: ${JSON.stringify(payload).substring(0, 100)}...`);
+      const payload = { title, authorName, pdfUrl: urlData.publicUrl, coverUrl: finalCoverUrl };
+      addLog(`📝 Payload ready`);
 
       const res = await fetch('/api/books/upload', {
         method: 'POST',
@@ -190,7 +185,6 @@ export default function Upload() {
       });
 
       addLog(`✅ Backend response: ${res.status}`);
-
       if (!res.ok) {
         const errorText = await res.text();
         addLog(`❌ Backend error: ${errorText}`);
@@ -243,26 +237,21 @@ export default function Upload() {
       <form onSubmit={handleSubmit}>
         <input name="title" placeholder="Book Title *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
         <input name="authorName" placeholder="Author Name *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
-
         <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image, max 5MB):</label>
         <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
-
         <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF, max 20MB) *</label>
         <input name="pdf" type="file" accept=".pdf" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
-
         <button type="submit" disabled={uploading} style={{width:'100%',padding:'12px',background:uploading?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer',marginTop:'10px'}}>
           {uploading ? '⏳ Processing...' : '📤 Upload Book'}
         </button>
       </form>
 
-      {/* 📜 DEBUG LOG BOX FOR MOBILE */}
       <div style={{marginTop:'20px', padding:'10px', background:'#1e1e1e', color:'#00ff00', fontFamily:'monospace', fontSize:'11px', maxHeight:'300px', overflowY:'scroll', borderRadius:'8px', whiteSpace:'pre-wrap', border:'1px solid #333'}}>
         <strong style={{color:'#fff'}}>📜 Debug Logs (Scroll & Copy to me):</strong>
         {'\n'}
         {logs.length === 0 ? 'Waiting for upload...' : logs.join('\n')}
       </div>
 
-      {/* Authors WhatsApp Link for Onboarded Authors */}
       <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px', textAlign:'center'}}>
         <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Connect with other Authors</p>
         <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
