@@ -1,10 +1,10 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-// 🚀 HARDCODED FIX: Account ID is directly in the code now. No more Vercel env var issues!
+// ✅ Clean version: Uses environment variables from Vercel (no hardcoded Account ID)
 const r2 = new S3Client({
   region: 'auto',
-  endpoint: `https://54a8b5ba385c6dab620cb7c3407abf4.r2.cloudflarestorage.com`,
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
@@ -27,8 +27,8 @@ export default async function handler(req, res) {
 
     const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 3600 });
 
-    // Hardcoded public URL as well
-    const publicUrl = `https://pub-54a8b5ba385c6dab620cb7c3407abf4.r2.dev/${key}`;
+    // ✅ Dynamic public URL using the environment variable
+    const publicUrl = `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev/${key}`;
 
     res.status(200).json({ uploadUrl, publicUrl, key });
   } catch (error) {
