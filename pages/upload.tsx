@@ -110,54 +110,17 @@ export default function Upload() {
     }
 
     try {
-      let finalCoverUrl = '';
-
-      if (coverFile && coverFile.name) {
-        addLog('🖼️ Starting Cloudinary upload');
-        setStep('2. Getting Cloudinary signature...');
-        try {
-          const sigRes = await fetch('/api/get-cloudinary-signature');
-          addLog(`✅ Signature response: ${sigRes.status}`);
-          const sigData = await sigRes.json();
-          addLog(`✅ Got signature for ${sigData.cloud_name}`);
-
-          setStep('3. Uploading Cover directly to Cloudinary...');
-          const coverFormData = new FormData();
-          coverFormData.append('file', coverFile);
-          coverFormData.append('api_key', sigData.api_key);
-          coverFormData.append('timestamp', sigData.timestamp);
-          coverFormData.append('signature', sigData.signature);
-          coverFormData.append('folder', sigData.folder);
-
-          const coverRes = await fetch(`https://api.cloudinary.com/v1_1/${sigData.cloud_name}/image/upload`, {
-            method: 'POST',
-            body: coverFormData
-          });
-
-          addLog(`✅ Cloudinary response: ${coverRes.status}`);
-          if (!coverRes.ok) throw new Error('Cover upload to Cloudinary failed');
-          const coverResult = await coverRes.json();
-          finalCoverUrl = coverResult.secure_url;
-          addLog('✅ Cover uploaded to Cloudinary');
-        } catch (coverErr: any) {
-          addLog(`❌ Cloudinary error: ${coverErr.message}`);
-          throw coverErr;
-        }
-      }
-
+      // STEP 1: Upload PDF DIRECTLY to Cloudflare R2
       addLog('📄 Starting R2 upload');
-      setStep('4. Getting R2 link...');
+      setStep('2. Getting R2 link...');
       const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
       addLog(`✅ R2 URL response: ${urlRes.status}`);
       const urlData = await urlRes.json();
 
-      addLog(`🔗 R2 Upload URL starts with: ${urlData.uploadUrl ? urlData.uploadUrl.substring(0, 60) + '...' : 'MISSING'}`);
-
       if (!urlData.uploadUrl) throw new Error('Failed to get R2 upload link.');
+      addLog('✅ Got R2 upload link');
 
-      setStep('5. Uploading PDF directly to Cloudflare...');
-      
-      // ✅ FIX: Removed headers entirely to prevent presigned URL signature mismatch
+      setStep('3. Uploading PDF directly to Cloudflare...');
       const directUpload = await fetch(urlData.uploadUrl, {
         method: 'PUT',
         body: pdfFile
@@ -171,16 +134,23 @@ export default function Upload() {
       }
       addLog('✅ PDF uploaded to Cloudflare R2');
 
-      addLog('💾 Starting MongoDB save');
-      setStep('6. Saving book details to database...');
+      // STEP 2: Send FormData (with cover file) to Backend
+      addLog('💾 Starting Backend save (Cover + Metadata)...');
+      setStep('4. Saving book details to database...');
 
-      const payload = { title, authorName, pdfUrl: urlData.publicUrl, coverUrl: finalCoverUrl };
-      addLog(`📝 Payload ready`);
+      const finalData = new FormData();
+      finalData.append('title', title);
+      finalData.append('authorName', authorName);
+      finalData.append('pdfUrl', urlData.publicUrl);
+      
+      // Append cover file so the backend can upload it to Cloudinary
+      if (coverFile && coverFile.name) {
+        finalData.append('cover', coverFile);
+      }
 
       const res = await fetch('/api/books/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: finalData // ✅ Sending FormData, matching your working backend!
       });
 
       addLog(`✅ Backend response: ${res.status}`);
