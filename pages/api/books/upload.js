@@ -1,7 +1,9 @@
 import { v2 as cloudinary } from 'cloudinary';
 import clientPromise from '../../../lib/mongodb';
+import formidable from 'formidable';
+import fs from 'fs';
 
-// 🚀 CRITICAL: Disable Next.js body parser to avoid conflicts with native formData
+// 🚀 CRITICAL: Disable Next.js body parser so formidable can read the raw stream
 export const config = {
   api: {
     bodyParser: false,
@@ -21,49 +23,53 @@ export default async function handler(req, res) {
   console.log('🚀 [UPLOAD API] Request received');
 
   try {
-    // Parse form data natively
-    console.log('📝 [UPLOAD API] Parsing form data...');
-    const formData = await req.formData();
+    // ✅ Use formidable to correctly parse multipart/form-data
+    console.log('📝 [UPLOAD API] Parsing form data with formidable...');
+    const form = formidable({});
+    
+    // form.parse returns an array: [fields, files]
+    const [fields, files] = await form.parse(req);
 
-    const title = formData.get('title');
-    const author = formData.get('authorName');
-    const pdfUrl = formData.get('pdfUrl');
-    const coverFile = formData.get('cover');
+    // formidable wraps values in arrays, so we grab the first item [0]
+    const title = fields.title?.[0] || '';
+    const authorName = fields.authorName?.[0] || 'Anonymous';
+    const pdfUrl = fields.pdfUrl?.[0];
+    const coverFile = files.cover?.[0]; // This is the actual file object
 
     console.log('✅ [UPLOAD API] Data received:', {
       title,
-      author,
+      authorName,
       pdfUrl: pdfUrl ? 'Present' : 'Missing',
-      hasCover: coverFile && coverFile.name ? true : false
+      hasCover: !!coverFile
     });
 
     if (!pdfUrl) {
       console.error('❌ [UPLOAD API] Missing PDF URL');
-      return res.status(400).json({ error: 'PDF URL is missing. The direct upload may have failed.' });
+      return res.status(400).json({ error: 'PDF URL is missing.' });
     }
 
     // 🛡️ Abuse Detection
     const spamKeywords = ['casino', 'betting', 'loan', 'xxx', 'free money', 'crypto scam', 'hack'];
-    const titleLower = (title || '').toLowerCase();
+    const titleLower = title.toLowerCase();
     const hasSpam = spamKeywords.some(k => titleLower.includes(k));
     const abuseFlags = hasSpam ? ['spam-title'] : [];
 
     // Upload Cover to Cloudinary
     let coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title || 'Book');
 
-    if (coverFile && coverFile.name) {
-      console.log('🖼️ [UPLOAD API] Processing cover image...', coverFile.name, 'Size:', coverFile.size);
+    if (coverFile) {
+      console.log('🖼️ [UPLOAD API] Processing cover image...');
       try {
-        const arrayBuffer = await coverFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64 = `data:${coverFile.type};base64,${buffer.toString('base64')}`;
+        // Read the temporary file created by formidable
+        const fileBuffer = fs.readFileSync(coverFile.filepath);
+        const base64 = `data:${coverFile.mimetype};base64,${fileBuffer.toString('base64')}`;
 
         const coverResult = await cloudinary.uploader.upload(base64, {
           resource_type: 'image',
           folder: 'booknaija/covers',
           public_id: `cover_${Date.now()}`,
           overwrite: false,
-          timeout: 60000 // 60 second timeout for slow networks
+          timeout: 60000 // 60 second timeout
         });
         coverUrl = coverResult.secure_url;
         console.log('✅ [UPLOAD API] Cover uploaded to Cloudinary:', coverUrl);
@@ -80,7 +86,7 @@ export default async function handler(req, res) {
 
     const result = await db.collection('books').insertOne({
       title,
-      authorName: author || 'Anonymous',
+      authorName,
       pdfUrl,
       coverUrl,
       status: abuseFlags.length > 0 ? 'flagged' : 'pending',
