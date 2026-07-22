@@ -18,8 +18,8 @@ export default function Books() {
       .catch(() => setLoading(false));
   }, []);
 
-  // ✅ SAFE SUBSCRIPTION CHECK: Prevents any "[object Object]" bugs
-  const sub = session?.user?.subscription;
+  // ✅ SAFE SUBSCRIPTION CHECK: 'as any' prevents TypeScript build errors for new DB fields
+  const sub = session?.user?.subscription as any;
   const isActive = sub && (sub.active === true || sub.status === 'active');
   const isPending = sub && sub.status === 'pending';
 
@@ -50,7 +50,7 @@ export default function Books() {
               <p style={{ margin: '5px 0 0', fontSize: '14px', color: '#666' }}>
                 {isActive 
                   ? '✅ Premium Active • Read unlimited books' 
-                  : (isPending ? '⏳ Payment Pending • Awaiting admin approval' : '⭐ Subscribe to read all books • ₦1000/month')}
+                  : (isPending ? '⏳ Payment Pending • Awaiting activation' : '⭐ Subscribe to read all books • ₦1000/month')}
               </p>
             </div>
             {!isActive && !isPending && (
@@ -75,7 +75,7 @@ export default function Books() {
                 fontWeight: 'bold',
                 fontSize: '14px'
               }}>
-                ⏳ Awaiting Approval
+                ⏳ Awaiting Activation
               </span>
             )}
           </div>
