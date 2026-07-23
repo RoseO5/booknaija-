@@ -3,7 +3,6 @@ import { useSession, signOut } from 'next-auth/react';
 
 export default function Home() {
   const { data: session } = useSession();
-  const userRole = session?.user?.role;
 
   return (
     <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
@@ -24,11 +23,14 @@ export default function Home() {
         <a href="/upload" style={{ display: 'block', padding: '15px', background: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
           📤 Upload Your Book
         </a>
-        {session && userRole === 'admin' && (
+        
+        {/* ✅ Admin Button restored for logged-in users */}
+        {session && (
           <a href="/admin" style={{ display: 'block', padding: '15px', background: '#6c757d', color: 'white', textDecoration: 'none', borderRadius: '8px', fontSize: '16px' }}>
             🔐 Admin Dashboard
           </a>
         )}
+
         {session && (
           <button
             onClick={() => signOut()}

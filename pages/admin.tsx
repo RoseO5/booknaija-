@@ -1,7 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
 export default function Admin() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -14,6 +19,20 @@ export default function Admin() {
   const [authors, setAuthors] = useState<any[]>([]);
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
+
+  // 🛡️ TWO-FACTOR SECURITY CHECK (Factor 1): Role Verification
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    // If not logged in, OR logged in but role is NOT 'admin', kick them out immediately
+    if (status === 'unauthenticated' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
+      router.push('/');
+      return;
+    }
+    
+    // Note: We intentionally do NOT auto-authenticate here. 
+    // Factor 2 requires the admin to manually enter the secret password below.
+  }, [status, session, router]);
 
   useEffect(() => {
     if (!authenticated) return;
@@ -61,6 +80,7 @@ export default function Admin() {
     }
   }, [authenticated, activeTab]);
 
+  // 🛡️ TWO-FACTOR SECURITY CHECK (Factor 2): Password Verification
   const handleLogin = async (e: any) => {
     e.preventDefault();
     const res = await fetch('/api/verify-admin', {
@@ -69,8 +89,12 @@ export default function Admin() {
       body: JSON.stringify({ password })
     });
     const result = await res.json();
-    if (result.valid) setAuthenticated(true);
-    else { setLoginError('❌ Incorrect password'); setTimeout(() => setLoginError(''), 2000); }
+    if (result.valid) {
+      setAuthenticated(true); // ✅ Only set to true if BOTH role and password match
+    } else { 
+      setLoginError('❌ Incorrect password'); 
+      setTimeout(() => setLoginError(''), 2000); 
+    }
   };
 
   const sendAuthorReports = async () => {
@@ -123,14 +147,25 @@ export default function Admin() {
     setStats(prev => ({ ...prev, pending: data.pending?.length || 0, flagged: data.flagged?.length || 0 }));
   };
 
+  // Show login screen if not yet authenticated (even if role is admin)
   if (!authenticated) {
     return (
       <div style={{ padding: '30px', maxWidth: '400px', margin: '100px auto', fontFamily: 'Arial' }}>
-        <h2 style={{ color: '#667eea', textAlign: 'center' }}>🔐 Admin Login</h2>
-        {loginError && <div style={{ background: '#f8d7da', color: '#721c24', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>{loginError}</div>}
+        <h2 style={{ color: '#667eea', textAlign: 'center' }}>🔐 Admin Verification</h2>
+        <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          Two-factor security active. Please enter your secret admin password.
+        </p>
+        {loginError && <div style={{ background: '#f8d7da', color: '#721c24', padding: '10px', borderRadius: '4px', marginBottom: '15px', textAlign: 'center' }}>{loginError}</div>}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <input type="password" value={password} onChange={(e: any) => setPassword(e.target.value)} placeholder="Enter admin password" required style={{ padding: '12px', border: '1px solid #ddd', borderRadius: '6px' }} />
-          <button type="submit" style={{ padding: '12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Login</button>
+          <input 
+            type="password" 
+            value={password} 
+            onChange={(e: any) => setPassword(e.target.value)} 
+            placeholder="Enter secret admin password" 
+            required 
+            style={{ padding: '12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '16px' }} 
+          />
+          <button type="submit" style={{ padding: '12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>Unlock Dashboard</button>
         </form>
       </div>
     );
@@ -373,7 +408,7 @@ export default function Admin() {
           <p style={{ color: '#666', marginBottom: '20px' }}>
             Authors self-register via <a href="/author-onboarding" style={{ color: '#667eea' }}>/author-onboarding</a>
           </p>
-          
+
           {authors.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '12px' }}>
               <p style={{ color: '#666' }}>No authors registered yet.</p>
@@ -414,7 +449,7 @@ export default function Admin() {
       )}
 
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
-        <button onClick={() => setAuthenticated(false)} style={{ padding: '10px 30px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>🔓 Logout</button>
+        <button onClick={() => setAuthenticated(false)} style={{ padding: '10px 30px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>🔓 Lock Dashboard</button>
       </div>
     </div>
   );
