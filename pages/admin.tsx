@@ -20,12 +20,16 @@ export default function Admin() {
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
 
-  // 🛡️ TWO-FACTOR SECURITY CHECK (Factor 1): Role Verification
+  // 🛡️ TWO-FACTOR SECURITY CHECK (Factor 1): Role OR Owner Email Verification
   useEffect(() => {
     if (status === 'loading') return;
 
-    // If not logged in, OR logged in but role is NOT 'admin', kick them out immediately
-    if (status === 'unauthenticated' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
+    // Explicitly allow the owner's email OR the 'admin' role
+    const isOwner = session?.user?.email === 'talktorose90@gmail.com';
+    const isAdmin = session?.user?.role === 'admin';
+
+    // If not logged in, AND not the owner, AND not an admin, kick them out immediately
+    if (status === 'unauthenticated' || (!isOwner && !isAdmin)) {
       router.push('/');
       return;
     }
@@ -90,7 +94,7 @@ export default function Admin() {
     });
     const result = await res.json();
     if (result.valid) {
-      setAuthenticated(true); // ✅ Only set to true if BOTH role and password match
+      setAuthenticated(true); // ✅ Only set to true if BOTH role/email and password match
     } else { 
       setLoginError('❌ Incorrect password'); 
       setTimeout(() => setLoginError(''), 2000); 
@@ -147,7 +151,7 @@ export default function Admin() {
     setStats(prev => ({ ...prev, pending: data.pending?.length || 0, flagged: data.flagged?.length || 0 }));
   };
 
-  // Show login screen if not yet authenticated (even if role is admin)
+  // Show login screen if not yet authenticated (even if role is admin or owner)
   if (!authenticated) {
     return (
       <div style={{ padding: '30px', maxWidth: '400px', margin: '100px auto', fontFamily: 'Arial' }}>
@@ -222,7 +226,6 @@ export default function Admin() {
       {activeTab === 'revenue' && revenue && (
         <div>
           <h3>💰 Monthly Revenue Report</h3>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px' }}>
             <div style={{ background: '#28a745', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center' }}>
               <div style={{ fontSize: '14px' }}>Total Revenue</div>
@@ -247,30 +250,15 @@ export default function Admin() {
 
           <div style={{ background: '#e7f3ff', padding: '20px', borderRadius: '12px', marginBottom: '20px' }}>
             <h4 style={{ marginTop: 0, color: '#004085' }}>📧 Author Reports</h4>
-            <p style={{ color: '#004085', marginBottom: '15px' }}>
-              Send monthly earnings reports to all authors automatically
-            </p>
+            <p style={{ color: '#004085', marginBottom: '15px' }}>Send monthly earnings reports to all authors automatically</p>
             <button
               onClick={sendAuthorReports}
               disabled={sendingEmails}
-              style={{
-                padding: '12px 30px',
-                background: sendingEmails ? '#999' : '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: sendingEmails ? 'not-allowed' : 'pointer',
-                fontWeight: 'bold',
-                fontSize: '16px'
-              }}
+              style={{ padding: '12px 30px', background: sendingEmails ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: sendingEmails ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}
             >
               {sendingEmails ? '📧 Sending...' : '📧 Send Reports to All Authors'}
             </button>
-            {emailResult && (
-              <p style={{ marginTop: '15px', color: '#155724' }}>
-                ✅ Sent {emailResult.sent} of {emailResult.total} reports
-              </p>
-            )}
+            {emailResult && <p style={{ marginTop: '15px', color: '#155724' }}>✅ Sent {emailResult.sent} of {emailResult.total} reports</p>}
           </div>
 
           <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
@@ -287,20 +275,17 @@ export default function Admin() {
       {activeTab === 'readers' && readerProgress && (
         <div>
           <h3>📚 Reader Progress & Prize Draw</h3>
-
           <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '12px', marginBottom: '20px' }}>
             <h4>🏆 Prize Status</h4>
             <p><strong>Qualified Readers:</strong> {readerProgress.prizeDrawInfo?.qualifiedCount} (need 3+ to draw)</p>
             <p><strong>Status:</strong> {readerProgress.prizeDrawInfo?.nextDraw}</p>
             <p><strong>Method:</strong> {readerProgress.prizeDrawInfo?.drawMethod}</p>
-
             {readerProgress.prizeDrawInfo?.canDraw && (
               <button onClick={conductPrizeDraw} style={{ padding: '12px 30px', background: '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginTop: '10px' }}>
                 🎉 Conduct Prize Draw Now
               </button>
             )}
           </div>
-
           <div style={{ display: 'grid', gap: '15px' }}>
             <div style={{ background: '#d4edda', padding: '15px', borderRadius: '8px' }}>
               <h4>✅ Qualified (50+ books) - {readerProgress.categories?.qualified?.count} readers</h4>
@@ -310,7 +295,6 @@ export default function Admin() {
                 </div>
               ))}
             </div>
-
             <div style={{ background: '#fff3cd', padding: '15px', borderRadius: '8px' }}>
               <h4>🔥 Nearly Qualified (40-49 books) - {readerProgress.categories?.nearlyQualified?.count} readers</h4>
               {readerProgress.categories?.nearlyQualified?.readers?.slice(0, 5).map((r: any, i: number) => (
@@ -336,7 +320,7 @@ export default function Admin() {
       {activeTab === 'approve' && (
         <div>
           <h3>✅ Pending Approvals</h3>
-          {pendingBooks.length === 0 ? <p style={{ color: '#666' }}>No pending books.</p> : (
+          {pendingBooks.length === 0 ? <p style={{ color: '#666' }}>No pending books. Upload a book first!</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {pendingBooks.map((b: any) => (
                 <div key={b._id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
@@ -366,7 +350,6 @@ export default function Admin() {
               <li>User reports: 3+ reports = auto-flagged</li>
             </ul>
           </div>
-
           {flaggedBooks.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', background: '#d4edda', borderRadius: '12px' }}>
               <p style={{ color: '#155724', fontSize: '18px', margin: 0 }}>✅ No flagged books. System is clean!</p>
@@ -405,10 +388,7 @@ export default function Admin() {
       {activeTab === 'authors' && (
         <div>
           <h3>✍️ Registered Authors</h3>
-          <p style={{ color: '#666', marginBottom: '20px' }}>
-            Authors self-register via <a href="/author-onboarding" style={{ color: '#667eea' }}>/author-onboarding</a>
-          </p>
-
+          <p style={{ color: '#666', marginBottom: '20px' }}>Authors self-register via <a href="/author-onboarding" style={{ color: '#667eea' }}>/author-onboarding</a></p>
           {authors.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '12px' }}>
               <p style={{ color: '#666' }}>No authors registered yet.</p>
@@ -420,23 +400,15 @@ export default function Admin() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '10px' }}>
                     <div>
                       <strong style={{ fontSize: '16px' }}>{a.fullName}</strong><br/>
-                      <small style={{ color: '#666' }}>
-                        📧 {a.email} • 📱 {a.phoneNumber}<br/>
-                        📍 {a.location}, {a.state}
-                      </small>
+                      <small style={{ color: '#666' }}>📧 {a.email} • 📱 {a.phoneNumber}<br/>📍 {a.location}, {a.state}</small>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ background: '#d4edda', padding: '6px 12px', borderRadius: '12px', fontSize: '12px', color: '#155724' }}>
-                        ✅ Verified
-                      </div>
-                      <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
-                        📅 Joined {new Date(a.createdAt).toLocaleDateString()}
-                      </small>
+                      <div style={{ background: '#d4edda', padding: '6px 12px', borderRadius: '12px', fontSize: '12px', color: '#155724' }}>✅ Verified</div>
+                      <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>📅 Joined {new Date(a.createdAt).toLocaleDateString()}</small>
                     </div>
                   </div>
                   <div style={{ marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '6px', fontSize: '13px' }}>
-                    <strong>💰 Payment Details:</strong><br/>
-                    {a.bankName} • {a.accountNumber} ({a.accountName})
+                    <strong>💰 Payment Details:</strong><br/>{a.bankName} • {a.accountNumber} ({a.accountName})
                   </div>
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
                     📚 Books: {a.totalBooks || 0} • 👁️ Reads: {a.totalReads || 0} • 💵 Earnings: ₦{(a.earnings || 0).toLocaleString()}
