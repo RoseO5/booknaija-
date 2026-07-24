@@ -13,7 +13,7 @@ export default function BookDetail() {
   const [elapsed, setElapsed] = useState(0);
   const [markedRead, setMarkedRead] = useState(false);
   const [readResult, setReadResult] = useState<any>(null);
-  const [isLoadingLink, setIsLoadingLink] = useState(false); // ✅ New state for button loading
+  const [isLoadingLink, setIsLoadingLink] = useState(false);
   const timerRef = useRef<any>(null);
 
   // ✅ Fetch the specific book directly from the dedicated API
@@ -32,22 +32,29 @@ export default function BookDetail() {
       .catch(() => setBook({ error: 'Failed to load book' }));
   }, [id]);
 
-  // ✅ NEW: Handle secure book access via presigned URL
+  // ✅ UPDATED: Handle secure book access with EXACT error reporting
   const handleReadBook = async () => {
-    if (!session?.user?.email || !book?._id) return;
+    if (!session?.user?.email || !book?._id) {
+      alert('❌ Please log in to read this book.');
+      return;
+    }
     
     setIsLoadingLink(true);
     try {
       const res = await fetch(`/api/books/access?bookId=${book._id}&userEmail=${encodeURIComponent(session.user.email)}`);
       const data = await res.json();
       
-      if (data.url) {
+      if (res.ok && data.url) {
         window.open(data.url, '_blank'); // Opens the secure, temporary link
       } else {
-        alert('❌ ' + (data.error || 'Failed to access book. Please ensure your subscription is active.'));
+        console.error('Backend Error Response:', data);
+        // This will show the EXACT reason it failed from the server
+        alert('❌ ' + (data.error || `Failed to access book (Status: ${res.status})`));
       }
-    } catch (err) {
-      alert('❌ Network error while fetching book link.');
+    } catch (err: any) {
+      console.error('Fetch Error:', err);
+      // This will show network-level errors
+      alert('❌ Network Error: ' + err.message);
     } finally {
       setIsLoadingLink(false);
     }
@@ -144,7 +151,7 @@ export default function BookDetail() {
           </div>
         )}
 
-        {/* ✅ UPDATED: Secure Read Book Button */}
+        {/* ✅ UPDATED: Secure Read Book Button with Loading State */}
         <button
           onClick={handleReadBook}
           disabled={isLoadingLink}
