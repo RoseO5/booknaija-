@@ -8,17 +8,18 @@ export default function BookDetail() {
   const router = useRouter();
   const { id } = router.query;
   const { data: session } = useSession();
-  
+
   const [book, setBook] = useState<any>(null);
   const [elapsed, setElapsed] = useState(0);
   const [markedRead, setMarkedRead] = useState(false);
   const [readResult, setReadResult] = useState<any>(null);
+  const [isLoadingLink, setIsLoadingLink] = useState(false); // ✅ New state for button loading
   const timerRef = useRef<any>(null);
 
-  // ✅ FIX: Fetch the specific book directly from the dedicated API
+  // ✅ Fetch the specific book directly from the dedicated API
   useEffect(() => {
     if (!id) return;
-    
+
     fetch(`/api/books/${id}`)
       .then(r => r.json())
       .then(data => {
@@ -30,6 +31,27 @@ export default function BookDetail() {
       })
       .catch(() => setBook({ error: 'Failed to load book' }));
   }, [id]);
+
+  // ✅ NEW: Handle secure book access via presigned URL
+  const handleReadBook = async () => {
+    if (!session?.user?.email || !book?._id) return;
+    
+    setIsLoadingLink(true);
+    try {
+      const res = await fetch(`/api/books/access?bookId=${book._id}&userEmail=${encodeURIComponent(session.user.email)}`);
+      const data = await res.json();
+      
+      if (data.url) {
+        window.open(data.url, '_blank'); // Opens the secure, temporary link
+      } else {
+        alert('❌ ' + (data.error || 'Failed to access book. Please ensure your subscription is active.'));
+      }
+    } catch (err) {
+      alert('❌ Network error while fetching book link.');
+    } finally {
+      setIsLoadingLink(false);
+    }
+  };
 
   // Start timer when user is reading (has active subscription)
   useEffect(() => {
@@ -93,19 +115,19 @@ export default function BookDetail() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: 'Arial' }}>
-      <button 
-        onClick={() => router.push('/books')} 
+      <button
+        onClick={() => router.push('/books')}
         style={{ marginBottom: '20px', padding: '8px 16px', background: '#f1f1f1', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', color: '#333' }}
       >
         ← Back to Books
       </button>
-      
-      <img 
-        src={book.coverUrl || 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(book.title)} 
-        alt={book.title} 
-        style={{ width: '100%', maxWidth: '300px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+
+      <img
+        src={book.coverUrl || 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(book.title)}
+        alt={book.title}
+        style={{ width: '100%', maxWidth: '300px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
       />
-      
+
       <h1 style={{ color: '#333', marginBottom: '10px', fontSize: '24px' }}>{book.title}</h1>
       <p style={{ color: '#666', marginBottom: '25px', fontSize: '16px' }}>By <strong>{book.authorName}</strong></p>
 
@@ -122,19 +144,18 @@ export default function BookDetail() {
           </div>
         )}
 
-        {/* Open Book Button */}
-        <a 
-          href={book.pdfUrl} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          style={{ display: 'inline-block', padding: '15px 30px', background: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '16px' }}
+        {/* ✅ UPDATED: Secure Read Book Button */}
+        <button
+          onClick={handleReadBook}
+          disabled={isLoadingLink}
+          style={{ display: 'inline-block', padding: '15px 30px', background: isLoadingLink ? '#999' : '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '16px', cursor: isLoadingLink ? 'not-allowed' : 'pointer' }}
         >
-          📖 Read Book Now
-        </a>
+          {isLoadingLink ? '⏳ Generating Secure Link...' : '📖 Read Book Now'}
+        </button>
 
         {/* Mark as Read Button - Only after 5 minutes */}
         {showMarkButton && (
-          <button 
+          <button
             onClick={handleMarkAsRead}
             style={{ padding: '15px 30px', background: '#28a745', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}
           >
