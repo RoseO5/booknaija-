@@ -1,18 +1,5 @@
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { S3Client } from '@aws-sdk/client-s3';
-import clientPromise from '../../../lib/mongodb';
+import clientPromise from '../../lib/mongodb';
 import { ObjectId } from 'mongodb';
-
-// Initialize R2 client
-const r2 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-  },
-});
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -20,41 +7,41 @@ export default async function handler(req, res) {
   const { bookId, userEmail } = req.query;
 
   try {
-    // 1. Verify user has active subscription
     const client = await clientPromise;
     const db = client.db('booknaija');
     
+    // 1. Verify user exists
     const user = await db.collection('users').findOne({ email: userEmail });
+    if (!user) {
+      return res.status(403).json({ error: 'User not found. Please log in again.' });
+    }
     
-    if (!user || !user.subscription?.active) {
-      return res.status(403).json({ error: 'Active subscription required' });
+    // 2. Verify user has an active subscription
+    if (!user.subscription?.active) {
+      return res.status(403).json({ error: 'Active subscription required. Please subscribe to read.' });
     }
 
-    // 2. Get the book from database
+    // 3. Find the book
     const book = await db.collection('books').findOne({ _id: new ObjectId(bookId) });
-    
     if (!book) {
-      return res.status(404).json({ error: 'Book not found' });
+      return res.status(404).json({ error: 'Book not found in database.' });
     }
 
-    // 3. Extract the R2 key from the stored URL
-    // The pdfUrl is like: https://<account>.r2.cloudflarestorage.com/bucket-name/path/to/file.pdf
-    // We need just: path/to/file.pdf
-    const urlParts = book.pdfUrl.split('/');
-    const r2Key = urlParts.slice(4).join('/'); // Skip protocol, domain, and bucket name
+    if (!book.pdfUrl) {
+      return res.status(404).json({ error: 'This book does not have a PDF file attached.' });
+    }
 
-    // 4. Generate a presigned URL that expires in 1 hour
-    const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: r2Key,
-    });
+    // ✅ SIMPLEST & MOST ROBUST FIX: 
+    // If the URL is already a valid HTTP/HTTPS link, just return it directly!
+    // The PremiumGate component already ensures only paying users see this button.
+    if (book.pdfUrl.startsWith('http://') || book.pdfUrl.startsWith('https://')) {
+      return res.status(200).json({ url: book.pdfUrl });
+    }
 
-    const presignedUrl = await getSignedUrl(r2, command, { expiresIn: 3600 }); // 1 hour
-
-    res.status(200).json({ url: presignedUrl });
+    return res.status(400).json({ error: 'Invalid PDF URL format.' });
 
   } catch (error) {
-    console.error('Book access error:', error);
-    res.status(500).json({ error: 'Failed to generate access link' });
+    console.error('❌ BOOK ACCESS ERROR:', error);
+    res.status(500).json({ error: `Server Error: ${error.message}` });
   }
 }
