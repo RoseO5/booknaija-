@@ -32,20 +32,21 @@ export default function BookDetail() {
       .catch(() => setBook({ error: 'Failed to load book' }));
   }, [id]);
 
-  // ✅ UPDATED: Handle secure book access with EXACT error reporting
+  // ✅ UPDATED: Handle secure book access with EXACT error reporting AND URL encoding
   const handleReadBook = async () => {
     if (!session?.user?.email || !book?._id) {
       alert('❌ Please log in to read this book.');
       return;
     }
-    
+
     setIsLoadingLink(true);
     try {
       const res = await fetch(`/api/books/access?bookId=${book._id}&userEmail=${encodeURIComponent(session.user.email)}`);
       const data = await res.json();
-      
+
       if (res.ok && data.url) {
-        window.open(data.url, '_blank'); // Opens the secure, temporary link
+        // ✅ encodeURI fixes the spaces and parentheses in the filename!
+        window.open(encodeURI(data.url), '_blank'); 
       } else {
         console.error('Backend Error Response:', data);
         // This will show the EXACT reason it failed from the server
