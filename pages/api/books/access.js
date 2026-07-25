@@ -39,15 +39,13 @@ export default async function handler(req, res) {
     });
 
     // 4. Extract the exact file key from the URL safely
-    // Example URL: https://pub-123.r2.dev/books/my file.pdf
-    // pathname is: /books/my file.pdf
-    // substring(1) removes the leading slash: books/my file.pdf
     const urlObj = new URL(book.pdfUrl);
     const r2Key = urlObj.pathname.substring(1);
 
     // 5. Generate a secure, temporary link (valid for 1 hour)
+    // ✅ HARDCODED BUCKET NAME: booknaija-pdfs
     const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
+      Bucket: 'booknaija-pdfs',
       Key: r2Key,
     });
 
