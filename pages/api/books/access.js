@@ -28,10 +28,10 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Book or PDF not found.' });
     }
 
-    // 3. Initialize Cloudflare R2 Client
+    // 3. Initialize Cloudflare R2 Client with HARDCODED Account ID
     const r2Client = new S3Client({
       region: 'auto',
-      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      endpoint: 'https://147238a805856894e45ba2a6d6937939.r2.cloudflarestorage.com',
       credentials: {
         accessKeyId: process.env.R2_ACCESS_KEY_ID,
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
@@ -43,7 +43,6 @@ export default async function handler(req, res) {
     const r2Key = urlObj.pathname.substring(1);
 
     // 5. Generate a secure, temporary link (valid for 1 hour)
-    // ✅ HARDCODED BUCKET NAME: booknaija-pdfs
     const command = new GetObjectCommand({
       Bucket: 'booknaija-pdfs',
       Key: r2Key,
