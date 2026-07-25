@@ -19,9 +19,16 @@ export default async function handler(req, res) {
     const book = await db.collection('books').findOne({ _id: new ObjectId(bookId) });
     if (!book || !book.pdfUrl) return res.status(404).json({ error: 'Book or PDF not found.' });
 
-    // 3. Return the direct PDF URL (PremiumGate already protects access)
-    console.log('✅ Returning direct PDF URL for book:', book.title);
-    res.status(200).json({ url: book.pdfUrl });
+    // 3. ✅ CONSTRUCT THE NEW PUBLIC URL
+    // Take the existing URL, and replace the hostname with your new public R2 domain
+    const urlObj = new URL(book.pdfUrl);
+    urlObj.hostname = 'pub-f5ccd8dd913c454a96f0ac2a3318cc46.r2.dev';
+    
+    const publicUrl = urlObj.toString();
+    console.log('✅ Generated public URL:', publicUrl);
+
+    // 4. Return the public URL to the frontend
+    res.status(200).json({ url: publicUrl });
 
   } catch (error) {
     console.error('❌ BOOK ACCESS ERROR:', error);
