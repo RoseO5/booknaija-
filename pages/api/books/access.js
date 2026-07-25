@@ -1,3 +1,5 @@
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import clientPromise from '../../../lib/mongodb';
 import { ObjectId } from 'mongodb';
 
@@ -7,38 +9,52 @@ export default async function handler(req, res) {
   const { bookId, userEmail } = req.query;
 
   try {
+    // 1. Verify user exists and has an active subscription
     const client = await clientPromise;
     const db = client.db('booknaija');
     
-    // 1. Verify user exists
     const user = await db.collection('users').findOne({ email: userEmail });
     if (!user) {
       return res.status(403).json({ error: 'User not found. Please log in again.' });
     }
     
-    // 2. Verify user has an active subscription
     if (!user.subscription?.active) {
       return res.status(403).json({ error: 'Active subscription required. Please subscribe to read.' });
     }
 
-    // 3. Find the book
+    // 2. Find the book
     const book = await db.collection('books').findOne({ _id: new ObjectId(bookId) });
-    if (!book) {
-      return res.status(404).json({ error: 'Book not found in database.' });
+    if (!book || !book.pdfUrl) {
+      return res.status(404).json({ error: 'Book or PDF not found.' });
     }
 
-    if (!book.pdfUrl) {
-      return res.status(404).json({ error: 'This book does not have a PDF file attached.' });
-    }
+    // 3. Initialize Cloudflare R2 Client
+    const r2Client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      },
+    });
 
-    // ✅ SIMPLEST & MOST ROBUST FIX: 
-    // If the URL is already a valid HTTP/HTTPS link, just return it directly!
-    // The PremiumGate component already ensures only paying users see this button.
-    if (book.pdfUrl.startsWith('http://') || book.pdfUrl.startsWith('https://')) {
-      return res.status(200).json({ url: book.pdfUrl });
-    }
+    // 4. Extract the exact file key from the URL safely
+    // Example URL: https://pub-123.r2.dev/books/my file.pdf
+    // pathname is: /books/my file.pdf
+    // substring(1) removes the leading slash: books/my file.pdf
+    const urlObj = new URL(book.pdfUrl);
+    const r2Key = urlObj.pathname.substring(1);
 
-    return res.status(400).json({ error: 'Invalid PDF URL format.' });
+    // 5. Generate a secure, temporary link (valid for 1 hour)
+    const command = new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: r2Key,
+    });
+
+    const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+
+    // 6. Return the secure link to the frontend
+    res.status(200).json({ url: presignedUrl });
 
   } catch (error) {
     console.error('❌ BOOK ACCESS ERROR:', error);
