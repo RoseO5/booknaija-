@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
     const title = fields.title?.[0] || '';
     const authorName = fields.authorName?.[0] || 'Anonymous';
-    const pdfFile = files.pdf?.[0]; // ✅ Now expecting a PDF file
+    const pdfFile = files.pdf?.[0]; 
     const coverFile = files.cover?.[0];
 
     console.log('✅ [UPLOAD API] Data received:', {
@@ -59,7 +59,8 @@ export default async function handler(req, res) {
         const pdfResult = await cloudinary.uploader.upload(base64, {
           resource_type: 'raw', // CRITICAL for PDFs
           folder: 'booknaija/pdfs',
-          public_id: `pdf_${Date.now()}_${pdfFile.original_filename.replace(/\.[^/.]+$/, "")}`,
+          // ✅ SIMPLIFIED: Just use a timestamp to avoid filename parsing errors
+          public_id: `pdf_${Date.now()}`, 
           timeout: 120000 // 2 minutes for larger PDFs
         });
         pdfUrl = pdfResult.secure_url;
