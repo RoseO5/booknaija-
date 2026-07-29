@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     let pdfUrl = '';
     let coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title || 'Book');
 
-    // 1. ✅ Upload PDF to Cloudinary (MUST use resource_type: 'raw')
+    // 1. ✅ Upload PDF to Cloudinary with format: 'pdf' for proper content-type
     if (pdfFile) {
       console.log('📄 [UPLOAD API] Uploading PDF to Cloudinary...');
       try {
@@ -57,13 +57,15 @@ export default async function handler(req, res) {
         const base64 = `data:${pdfFile.mimetype};base64,${pdfBuffer.toString('base64')}`;
 
         const pdfResult = await cloudinary.uploader.upload(base64, {
-          resource_type: 'raw', // CRITICAL for PDFs
+          resource_type: 'raw',
+          format: 'pdf', // ✅ CRITICAL: Ensures URL ends with .pdf for proper content-type
           folder: 'booknaija/pdfs',
-          // ✅ SIMPLIFIED: Just use a timestamp to avoid filename parsing errors
-          public_id: `pdf_${Date.now()}`, 
-          timeout: 120000 // 2 minutes for larger PDFs
+          public_id: `pdf_${Date.now()}`,
+          timeout: 120000
         });
-        pdfUrl = pdfResult.secure_url;
+        
+        // ✅ Transform URL to include fl_inline for inline display
+        pdfUrl = pdfResult.secure_url.replace('/upload/', '/upload/fl_inline/');
         console.log('✅ [UPLOAD API] PDF uploaded to Cloudinary:', pdfUrl);
       } catch (err) {
         console.error('❌ [UPLOAD API] PDF upload failed:', err.message);
