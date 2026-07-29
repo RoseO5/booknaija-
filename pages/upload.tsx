@@ -50,18 +50,10 @@ export default function Upload() {
     return (
       <div style={{padding:'40px',textAlign:'center',maxWidth:'500px',margin:'50px auto',fontFamily:'Arial'}}>
         <h2 style={{color:'#fd7e14'}}>✍️ Author Registration Required</h2>
-        <p style={{color:'#666',marginBottom:'20px'}}>
-          To upload books, you must first complete the author onboarding form.
-        </p>
+        <p style={{color:'#666',marginBottom:'20px'}}>To upload books, you must first complete the author onboarding form.</p>
         <a href="/author-onboarding" style={{display:'inline-block',padding:'12px 30px',background:'#fd7e14',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
           ✍️ Complete Author Registration
         </a>
-        <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px'}}>
-          <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Join our Authors Community</p>
-          <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
-            Join Authors WhatsApp Group
-          </a>
-        </div>
       </div>
     );
   }
@@ -69,10 +61,10 @@ export default function Upload() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setMessage('');
-    setStep('1. Checking files...');
+    setStep('1. Preparing files...');
     setUploading(true);
     setLogs([]);
-    addLog('🚀 Starting upload process');
+    addLog('🚀 Starting Cloudinary upload process');
 
     const formData = new FormData(e.currentTarget);
     const pdfFile = formData.get('pdf') as File;
@@ -80,21 +72,17 @@ export default function Upload() {
     const title = formData.get('title') as string;
     const authorName = formData.get('authorName') as string;
 
-    addLog(`📝 Form data: Title="${title}", PDF=${!!pdfFile}, Cover=${!!coverFile}`);
-
     if (!pdfFile || !pdfFile.name) {
-      addLog('❌ No PDF file selected');
       setMessage('❌ Please select a PDF file');
       setUploading(false);
       setStep('');
       return;
     }
 
-    const MAX_PDF_SIZE = 20 * 1024 * 1024;
-    const MAX_COVER_SIZE = 5 * 1024 * 1024;
+    const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20MB
+    const MAX_COVER_SIZE = 5 * 1024 * 1024; // 5MB
 
     if (pdfFile.size > MAX_PDF_SIZE) {
-      addLog(`❌ PDF too large: ${pdfFile.size} bytes`);
       setMessage(`❌ PDF is too large (${(pdfFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 20MB.`);
       setUploading(false);
       setStep('');
@@ -102,7 +90,6 @@ export default function Upload() {
     }
 
     if (coverFile && coverFile.size > MAX_COVER_SIZE) {
-      addLog(`❌ Cover too large: ${coverFile.size} bytes`);
       setMessage(`❌ Cover image is too large (${(coverFile.size / 1024 / 1024).toFixed(1)}MB). Maximum is 5MB.`);
       setUploading(false);
       setStep('');
@@ -110,47 +97,21 @@ export default function Upload() {
     }
 
     try {
-      // STEP 1: Upload PDF DIRECTLY to Cloudflare R2
-      addLog('📄 Starting R2 upload');
-      setStep('2. Getting R2 link...');
-      const urlRes = await fetch(`/api/get-upload-url?filename=${encodeURIComponent(pdfFile.name)}`);
-      addLog(`✅ R2 URL response: ${urlRes.status}`);
-      const urlData = await urlRes.json();
-
-      if (!urlData.uploadUrl) throw new Error('Failed to get R2 upload link.');
-      addLog('✅ Got R2 upload link');
-
-      setStep('3. Uploading PDF directly to Cloudflare...');
-      const directUpload = await fetch(urlData.uploadUrl, {
-        method: 'PUT',
-        body: pdfFile
-      });
-
-      addLog(`✅ R2 upload response: ${directUpload.status}`);
-      if (!directUpload.ok) {
-        const errText = await directUpload.text();
-        addLog(`❌ R2 upload failed: ${directUpload.status} - ${errText}`);
-        throw new Error(`PDF upload to Cloudflare failed: ${directUpload.status}`);
-      }
-      addLog('✅ PDF uploaded to Cloudflare R2');
-
-      // STEP 2: Send FormData (with cover file) to Backend
-      addLog('💾 Starting Backend save (Cover + Metadata)...');
-      setStep('4. Saving book details to database...');
+      setStep('2. Uploading PDF and Cover to Cloudinary...');
+      addLog('💾 Sending files to backend for Cloudinary upload...');
 
       const finalData = new FormData();
       finalData.append('title', title);
       finalData.append('authorName', authorName);
-      finalData.append('pdfUrl', urlData.publicUrl);
+      finalData.append('pdf', pdfFile); // ✅ Send PDF file directly
       
-      // Append cover file so the backend can upload it to Cloudinary
       if (coverFile && coverFile.name) {
         finalData.append('cover', coverFile);
       }
 
       const res = await fetch('/api/books/upload', {
         method: 'POST',
-        body: finalData // ✅ Sending FormData, matching your working backend!
+        body: finalData
       });
 
       addLog(`✅ Backend response: ${res.status}`);
@@ -165,7 +126,7 @@ export default function Upload() {
 
       if (result.success) {
         setMessage('✅ ' + (result.message || 'Book uploaded successfully! Pending admin approval.'));
-        setTimeout(() => window.location.href = '/books', 2000);
+        setTimeout(() => window.location.href = '/books', 2500);
       } else {
         setMessage('❌ ' + (result.error || 'Upload failed'));
       }
@@ -206,26 +167,21 @@ export default function Upload() {
       <form onSubmit={handleSubmit}>
         <input name="title" placeholder="Book Title *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
         <input name="authorName" placeholder="Author Name *" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
+        
         <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>🖼️ Book Cover (Image, max 5MB):</label>
         <input name="cover" type="file" accept="image/*" style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
+        
         <label style={{display:'block', margin:'8px 0', color:'#666', fontSize:'14px', fontWeight:'bold'}}>📄 Book Content (PDF, max 20MB) *</label>
         <input name="pdf" type="file" accept=".pdf" required style={{width:'100%',margin:'8px 0',padding:'10px',border:'1px solid #ddd',borderRadius:'4px',boxSizing:'border-box'}} />
+        
         <button type="submit" disabled={uploading} style={{width:'100%',padding:'12px',background:uploading?'#999':'#28a745',color:'white',border:'none',borderRadius:'4px',fontWeight:'bold',cursor:'pointer',marginTop:'10px'}}>
-          {uploading ? '⏳ Processing...' : '📤 Upload Book'}
+          {uploading ? '⏳ Uploading to Cloudinary...' : '📤 Upload Book'}
         </button>
       </form>
 
       <div style={{marginTop:'20px', padding:'10px', background:'#1e1e1e', color:'#00ff00', fontFamily:'monospace', fontSize:'11px', maxHeight:'300px', overflowY:'scroll', borderRadius:'8px', whiteSpace:'pre-wrap', border:'1px solid #333'}}>
-        <strong style={{color:'#fff'}}>📜 Debug Logs (Scroll & Copy to me):</strong>
-        {'\n'}
+        <strong style={{color:'#fff'}}>📜 Debug Logs:</strong>{'\n'}
         {logs.length === 0 ? 'Waiting for upload...' : logs.join('\n')}
-      </div>
-
-      <div style={{marginTop:'30px', padding:'15px', background:'#e7f3ff', borderRadius:'8px', textAlign:'center'}}>
-        <p style={{margin:'0 0 10px', color:'#004085', fontWeight:'bold'}}>💬 Connect with other Authors</p>
-        <a href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?mode=gi_t" target="_blank" rel="noopener noreferrer" style={{display:'inline-block', padding:'10px 20px', background:'#25D366', color:'white', textDecoration:'none', borderRadius:'6px', fontWeight:'bold'}}>
-          Join Authors WhatsApp Group
-        </a>
       </div>
     </div>
   );

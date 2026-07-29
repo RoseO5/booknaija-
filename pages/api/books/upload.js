@@ -3,14 +3,12 @@ import clientPromise from '../../../lib/mongodb';
 import formidable from 'formidable';
 import fs from 'fs';
 
-// 🚀 CRITICAL: Disable Next.js body parser so formidable can read the raw stream
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// Configure Cloudinary (covers only)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -23,29 +21,23 @@ export default async function handler(req, res) {
   console.log('🚀 [UPLOAD API] Request received');
 
   try {
-    // ✅ Use formidable to correctly parse multipart/form-data
-    console.log('📝 [UPLOAD API] Parsing form data with formidable...');
     const form = formidable({});
-    
-    // form.parse returns an array: [fields, files]
     const [fields, files] = await form.parse(req);
 
-    // formidable wraps values in arrays, so we grab the first item [0]
     const title = fields.title?.[0] || '';
     const authorName = fields.authorName?.[0] || 'Anonymous';
-    const pdfUrl = fields.pdfUrl?.[0];
-    const coverFile = files.cover?.[0]; // This is the actual file object
+    const pdfFile = files.pdf?.[0]; // ✅ Now expecting a PDF file
+    const coverFile = files.cover?.[0];
 
     console.log('✅ [UPLOAD API] Data received:', {
       title,
       authorName,
-      pdfUrl: pdfUrl ? 'Present' : 'Missing',
+      hasPdf: !!pdfFile,
       hasCover: !!coverFile
     });
 
-    if (!pdfUrl) {
-      console.error('❌ [UPLOAD API] Missing PDF URL');
-      return res.status(400).json({ error: 'PDF URL is missing.' });
+    if (!pdfFile) {
+      return res.status(400).json({ error: 'PDF file is missing.' });
     }
 
     // 🛡️ Abuse Detection
@@ -54,13 +46,34 @@ export default async function handler(req, res) {
     const hasSpam = spamKeywords.some(k => titleLower.includes(k));
     const abuseFlags = hasSpam ? ['spam-title'] : [];
 
-    // Upload Cover to Cloudinary
+    let pdfUrl = '';
     let coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title || 'Book');
 
+    // 1. ✅ Upload PDF to Cloudinary (MUST use resource_type: 'raw')
+    if (pdfFile) {
+      console.log('📄 [UPLOAD API] Uploading PDF to Cloudinary...');
+      try {
+        const pdfBuffer = fs.readFileSync(pdfFile.filepath);
+        const base64 = `data:${pdfFile.mimetype};base64,${pdfBuffer.toString('base64')}`;
+
+        const pdfResult = await cloudinary.uploader.upload(base64, {
+          resource_type: 'raw', // CRITICAL for PDFs
+          folder: 'booknaija/pdfs',
+          public_id: `pdf_${Date.now()}_${pdfFile.original_filename.replace(/\.[^/.]+$/, "")}`,
+          timeout: 120000 // 2 minutes for larger PDFs
+        });
+        pdfUrl = pdfResult.secure_url;
+        console.log('✅ [UPLOAD API] PDF uploaded to Cloudinary:', pdfUrl);
+      } catch (err) {
+        console.error('❌ [UPLOAD API] PDF upload failed:', err.message);
+        return res.status(500).json({ error: 'Failed to upload PDF to Cloudinary: ' + err.message });
+      }
+    }
+
+    // 2. Upload Cover to Cloudinary
     if (coverFile) {
       console.log('🖼️ [UPLOAD API] Processing cover image...');
       try {
-        // Read the temporary file created by formidable
         const fileBuffer = fs.readFileSync(coverFile.filepath);
         const base64 = `data:${coverFile.mimetype};base64,${fileBuffer.toString('base64')}`;
 
@@ -69,17 +82,16 @@ export default async function handler(req, res) {
           folder: 'booknaija/covers',
           public_id: `cover_${Date.now()}`,
           overwrite: false,
-          timeout: 60000 // 60 second timeout
+          timeout: 60000
         });
         coverUrl = coverResult.secure_url;
         console.log('✅ [UPLOAD API] Cover uploaded to Cloudinary:', coverUrl);
       } catch (err) {
         console.error('❌ [UPLOAD API] Cover upload failed, using placeholder:', err.message);
-        // Continue without cover - don't fail the whole upload
       }
     }
 
-    // Save to MongoDB
+    // 3. Save to MongoDB
     console.log('💾 [UPLOAD API] Saving to MongoDB...');
     const client = await clientPromise;
     const db = client.db('booknaija');
