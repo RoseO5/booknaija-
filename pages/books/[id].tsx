@@ -39,11 +39,19 @@ export default function BookDetail() {
       const data = await res.json();
       
       if (res.ok && data.url) {
-        // ✅ MAGIC FIX: Add ?fl=inline to force the browser to open the PDF instead of downloading it
-        const separator = data.url.includes('?') ? '&' : '?';
-        const inlineUrl = `${data.url}${separator}fl=inline`;
+        // ✅ FIX: Add Cloudinary parameters to force inline display
+        // Cloudinary URLs are already safe, no need to encodeURI
+        let pdfUrl = data.url;
         
-        window.open(encodeURI(inlineUrl), '_blank'); 
+        // Add ?fl=inline to force browser to display PDF instead of downloading
+        if (!pdfUrl.includes('?')) {
+          pdfUrl += '?fl=inline';
+        } else {
+          pdfUrl += '&fl=inline';
+        }
+        
+        console.log('📖 Opening PDF URL:', pdfUrl);
+        window.open(pdfUrl, '_blank'); 
       } else {
         alert('❌ ' + (data.error || `Failed to access book`));
       }
