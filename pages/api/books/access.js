@@ -17,13 +17,9 @@ export default async function handler(req, res) {
     const book = await db.collection('books').findOne({ _id: new ObjectId(bookId) });
     if (!book || !book.pdfUrl) return res.status(404).json({ error: 'Book or PDF not found.' });
 
-    // ✅ Add fl_inline as query parameter to force inline display
-    let pdfUrl = book.pdfUrl;
-    const separator = pdfUrl.includes('?') ? '&' : '?';
-    pdfUrl = `${pdfUrl}${separator}fl_inline=true`;
-
-    console.log('✅ Returning PDF URL with fl_inline:', pdfUrl);
-    res.status(200).json({ url: pdfUrl });
+    // ✅ Just return the clean Cloudinary URL (no extra parameters needed)
+    console.log('✅ Returning Cloudinary PDF URL:', book.pdfUrl);
+    res.status(200).json({ url: book.pdfUrl });
 
   } catch (error) {
     console.error('❌ BOOK ACCESS ERROR:', error);
