@@ -35,12 +35,16 @@ export default function BookDetail() {
     
     setIsLoadingLink(true);
     try {
+      // ✅ Verify subscription via the access API first
       const res = await fetch(`/api/books/access?bookId=${book._id}&userEmail=${encodeURIComponent(session.user.email)}`);
       const data = await res.json();
       
-      if (res.ok && data.url) {
-        console.log('📖 Opening PDF URL:', data.url);
-        window.open(data.url, '_blank'); 
+      if (res.ok) {
+        // ✅ MAGIC: Open our secure PDF Reader API instead of Cloudinary directly
+        // This guarantees the PDF opens in the browser without downloading or 401 errors!
+        const readerUrl = `/api/read-pdf/${book._id}`;
+        console.log('📖 Opening secure PDF reader:', readerUrl);
+        window.open(readerUrl, '_blank'); 
       } else {
         alert('❌ ' + (data.error || `Failed to access book`));
       }
