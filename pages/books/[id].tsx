@@ -40,9 +40,8 @@ export default function BookDetail() {
       const data = await res.json();
       
       if (res.ok) {
-        // ✅ MAGIC: Open our secure PDF Reader API instead of Cloudinary directly
-        // This guarantees the PDF opens in the browser without downloading or 401 errors!
-        const readerUrl = `/api/read-pdf/${book._id}`;
+        // ✅ MAGIC: Open our secure PDF Reader API (flat route)
+        const readerUrl = `/api/read-pdf?id=${book._id}`;
         console.log('📖 Opening secure PDF reader:', readerUrl);
         window.open(readerUrl, '_blank'); 
       } else {
