@@ -10,14 +10,16 @@ export default async function handler(req, res) {
     const client = await clientPromise;
     const db = client.db('booknaija');
     
+    // 1. Verify user exists and has an active subscription
     const user = await db.collection('users').findOne({ email: userEmail });
     if (!user) return res.status(403).json({ error: 'User not found.' });
     if (!user.subscription?.active) return res.status(403).json({ error: 'Active subscription required.' });
 
+    // 2. Find the book
     const book = await db.collection('books').findOne({ _id: new ObjectId(bookId) });
     if (!book || !book.pdfUrl) return res.status(404).json({ error: 'Book or PDF not found.' });
 
-    // ✅ Just return the clean Cloudinary URL (no extra parameters needed)
+    // 3. Return the Cloudinary URL (already has .pdf extension for inline display)
     console.log('✅ Returning Cloudinary PDF URL:', book.pdfUrl);
     res.status(200).json({ url: book.pdfUrl });
 
