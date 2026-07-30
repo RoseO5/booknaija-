@@ -39,7 +39,6 @@ export default function BookDetail() {
       const data = await res.json();
       
       if (res.ok && data.url) {
-        // ✅ URL already has fl_inline from the upload, just open it
         console.log('📖 Opening PDF URL:', data.url);
         window.open(data.url, '_blank'); 
       } else {
