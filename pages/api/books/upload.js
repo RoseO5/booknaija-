@@ -49,23 +49,25 @@ export default async function handler(req, res) {
     let pdfUrl = '';
     let coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title || 'Book');
 
-    // 1. ✅ Upload PDF as IMAGE (Cloudinary supports PDFs as images!)
+    // 1. ✅ Upload PDF as 'raw' (Required for actual file delivery)
     if (pdfFile) {
-      console.log('📄 [UPLOAD API] Uploading PDF to Cloudinary as image...');
+      console.log('📄 [UPLOAD API] Uploading PDF to Cloudinary as raw file...');
       try {
         const pdfBuffer = fs.readFileSync(pdfFile.filepath);
         const base64 = `data:${pdfFile.mimetype};base64,${pdfBuffer.toString('base64')}`;
 
         const pdfResult = await cloudinary.uploader.upload(base64, {
-          resource_type: 'image', // ✅ PDFs work perfectly as images!
+          resource_type: 'raw', // MUST be raw for PDFs
           folder: 'booknaija/pdfs',
           public_id: `pdf_${Date.now()}`,
-          format: 'pdf', // Keep as PDF format
           timeout: 120000
         });
         
-        pdfUrl = pdfResult.secure_url;
-        console.log('✅ [UPLOAD API] PDF uploaded to Cloudinary:', pdfUrl);
+        // ✨ MAGIC TRICK: Append .pdf to the raw URL. 
+        // Cloudinary will automatically serve it with Content-Type: application/pdf
+        // and the browser will open it inline instead of downloading as .bin!
+        pdfUrl = pdfResult.secure_url + '.pdf';
+        console.log('✅ [UPLOAD API] PDF uploaded. Final URL:', pdfUrl);
       } catch (err) {
         console.error('❌ [UPLOAD API] PDF upload failed:', err.message);
         return res.status(500).json({ error: 'Failed to upload PDF to Cloudinary: ' + err.message });
