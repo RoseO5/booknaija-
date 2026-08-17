@@ -35,16 +35,16 @@ export default function BookDetail() {
 
     setIsLoadingLink(true);
     try {
-      // ✅ Verify subscription via the access API first
       const res = await fetch(`/api/books/access?bookId=${book._id}&userEmail=${encodeURIComponent(session.user.email)}`);
       const data = await res.json();
 
-      // ✅ FIX: Check if res.ok AND data.url exists, then open THAT URL directly!
       if (res.ok && data.url) {
-        console.log('📖 Opening Cloudinary PDF URL:', data.url);
-        window.open(data.url, '_blank');
+        // ✅ OPEN THE SECURE PROXY INSTEAD OF CLOUDINARY DIRECTLY
+        const proxyUrl = `/api/read-pdf?id=${book._id}`;
+        console.log('📖 Opening secure proxy:', proxyUrl);
+        window.open(proxyUrl, '_blank');
       } else {
-        alert('❌ ' + (data.error || `Failed to access book`));
+        alert('❌ ' + (data.error || 'Failed to access book'));
       }
     } catch (err: any) {
       alert('❌ Network Error: ' + err.message);
