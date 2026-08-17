@@ -49,24 +49,23 @@ export default async function handler(req, res) {
     let pdfUrl = '';
     let coverUrl = 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(title || 'Book');
 
-    // 1. ✅ Upload PDF as 'raw' (Required for actual file delivery)
+    // 1. ✅ Upload PDF as 'image' (Official Cloudinary way for inline PDF viewing)
     if (pdfFile) {
-      console.log('📄 [UPLOAD API] Uploading PDF to Cloudinary as raw file...');
+      console.log('📄 [UPLOAD API] Uploading PDF to Cloudinary...');
       try {
         const pdfBuffer = fs.readFileSync(pdfFile.filepath);
         const base64 = `data:${pdfFile.mimetype};base64,${pdfBuffer.toString('base64')}`;
 
         const pdfResult = await cloudinary.uploader.upload(base64, {
-          resource_type: 'raw', // MUST be raw for PDFs
+          resource_type: 'image', // ✅ Official way to get inline PDF viewing
+          format: 'pdf',          // ✅ Keeps it as a PDF file
           folder: 'booknaija/pdfs',
           public_id: `pdf_${Date.now()}`,
           timeout: 120000
         });
         
-        // ✨ MAGIC TRICK: Append .pdf to the raw URL. 
-        // Cloudinary will automatically serve it with Content-Type: application/pdf
-        // and the browser will open it inline instead of downloading as .bin!
-        pdfUrl = pdfResult.secure_url + '.pdf';
+        // ✅ Use the exact URL Cloudinary gives us. No manual appending needed!
+        pdfUrl = pdfResult.secure_url;
         console.log('✅ [UPLOAD API] PDF uploaded. Final URL:', pdfUrl);
       } catch (err) {
         console.error('❌ [UPLOAD API] PDF upload failed:', err.message);
