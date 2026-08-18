@@ -292,7 +292,7 @@ export default function Admin() {
                   <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button onClick={() => updateStatus(b._id, 'published')} style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✅ Approve</button>
                     <button onClick={() => updateStatus(b._id, 'rejected')} style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🚫 Reject</button>
-                    <a href={b.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '4px', textDecoration: 'none' }}>👁️ Preview</a>
+                    <a href={`/admin-preview?id=${b._id}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '4px', textDecoration: 'none' }}>👁️ Preview</a>
                   </div>
                 </div>
               ))}
