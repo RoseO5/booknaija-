@@ -17,7 +17,7 @@ export default function PDFReader() {
   useEffect(() => {
     if (!id || !session?.user?.email) return;
 
-    // 1. Fetch the secure URL
+    // 1. Fetch the secure inline URL
     fetch(`/api/books/access?bookId=${id}&userEmail=${encodeURIComponent(session.user.email)}`)
       .then(r => r.json())
       .then(data => {
@@ -33,16 +33,19 @@ export default function PDFReader() {
         setIsLoading(false);
       });
 
-    // 2. Anti-Cheat: Disable right-click on the entire page
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+    // 2. ANTI-CHEAT: Disable right-click on the entire reader page
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
     document.addEventListener('contextmenu', handleContextMenu);
 
-    // 3. Heartbeat Tracking: Ping server every 30 seconds to log real reading time
+    // 3. HEARTBEAT TRACKING: Ping server every 30 seconds to log real reading time
     heartbeatRef.current = setInterval(() => {
       setSecondsRead(prev => {
         const newTime = prev + 30;
         
-        // Send secure ping to server
+        // Securely log this 30 seconds to the database for the prize draw
         fetch('/api/books/track-reading', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -65,7 +68,7 @@ export default function PDFReader() {
 
   if (isLoading) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial' }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial', background: '#f5f5f5' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>📖</div>
           <h2 style={{ color: '#667eea' }}>Loading your book securely...</h2>
@@ -76,7 +79,7 @@ export default function PDFReader() {
 
   if (error) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial' }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial', background: '#f5f5f5' }}>
         <div style={{ textAlign: 'center', padding: '40px' }}>
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>❌</div>
           <h2 style={{ color: '#dc3545' }}>{error}</h2>
@@ -97,28 +100,29 @@ export default function PDFReader() {
         </button>
         <div style={{ textAlign: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '16px' }}>📖 BookNaija Reader</h3>
-          <span style={{ fontSize: '12px', opacity: 0.8 }}>⏱️ Time Read: {Math.floor(secondsRead / 60)}m {secondsRead % 60}s</span>
+          <span style={{ fontSize: '12px', opacity: 0.9 }}>⏱️ Time Read: {Math.floor(secondsRead / 60)}m {secondsRead % 60}s</span>
         </div>
         <div style={{ width: '100px' }}></div>
       </div>
 
-      {/* ANTI-CHEAT WATERMARK: Subtly displays user's email to discourage screenshots/sharing */}
+      {/* ANTI-CHEAT WATERMARK: Subtly overlays the user's email to discourage screenshots/sharing */}
       <div style={{
         position: 'absolute',
         top: '50%',
         left: '50%',
-        transform: 'translate(-50%, -50%) rotate(-45deg)',
+        transform: 'translate(-50%, -50%) rotate(-30deg)',
         fontSize: '24px',
         color: 'rgba(255, 255, 255, 0.15)',
         pointerEvents: 'none',
         zIndex: 10,
         whiteSpace: 'nowrap',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
       }}>
         BookNaija • {session?.user?.email} • Do Not Share
       </div>
 
-      {/* PDF Viewer - Full Screen */}
+      {/* PDF Viewer - Full Screen. The 'fl_inline' flag from the API forces it to render here, not download. */}
       <iframe
         src={pdfUrl}
         style={{ flex: 1, width: '100%', border: 'none', background: '#525659' }}

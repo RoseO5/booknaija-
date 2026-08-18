@@ -22,33 +22,19 @@ export default async function handler(req, res) {
     if (!user.subscription?.active) return res.status(403).json({ error: 'Active subscription required.' });
 
     const book = await db.collection('books').findOne({ _id: new ObjectId(bookId) });
-    if (!book) return res.status(404).json({ error: 'Book not found.' });
+    if (!book || !book.pdfPublicId) return res.status(404).json({ error: 'Book or PDF not found.' });
 
-    let finalUrl = '';
+    // ✅ THE MAGIC: 'image' resource + 'pdf' format + 'inline' flag forces browser to render, not download
+    const secureUrl = cloudinary.url(book.pdfPublicId, {
+      resource_type: 'image',
+      format: 'pdf',
+      flags: 'inline', // Forces the browser to display the PDF in the tab/iframe
+      sign_url: true,  // Prevents unauthorized sharing
+      expires_at: Math.floor(Date.now() / 1000) + 3600 // Link expires in 1 hour
+    });
 
-    // ✅ CHECK IF BOOK HAS pdfPublicId (NEW UPLOADS)
-    if (book.pdfPublicId) {
-      // Generate signed URL with inline flag (forces browser to display, not download)
-      finalUrl = cloudinary.url(book.pdfPublicId, {
-        resource_type: 'raw',
-        type: 'upload',
-        sign_url: true,
-        flags: 'inline',
-        expires_at: Math.floor(Date.now() / 1000) + 3600 // Valid for 1 hour
-      });
-      console.log('✅ Generated signed inline URL for:', book.title);
-    } 
-    // ✅ OLD BOOKS (NO pdfPublicId)
-    else if (book.pdfUrl) {
-      // Return the direct URL (will download, but at least it works)
-      finalUrl = book.pdfUrl;
-      console.log('✅ Using direct URL for old book:', book.title);
-    } 
-    else {
-      return res.status(404).json({ error: 'PDF not found for this book.' });
-    }
-
-    res.status(200).json({ url: finalUrl });
+    console.log('✅ Generated secure inline URL for:', book.title);
+    res.status(200).json({ url: secureUrl });
 
   } catch (error) {
     console.error('❌ BOOK ACCESS ERROR:', error);

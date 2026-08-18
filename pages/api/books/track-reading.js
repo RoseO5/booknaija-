@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     const client = await clientPromise;
     const db = client.db('booknaija');
 
-    // 1. Update the user's reading progress for this specific book
+    // 1. Log the reading session
     await db.collection('reading_progress').updateOne(
       { userId, bookId },
       { 
@@ -24,9 +24,8 @@ export default async function handler(req, res) {
       { upsert: true }
     );
 
-    // 2. Update the user's overall prize draw progress (e.g., every 5 mins = 1 point)
-    const pointsEarned = Math.floor(timeSpent / 300); // 1 point per 5 minutes
-    
+    // 2. Add to overall prize draw points (e.g., 1 point per 5 minutes of reading)
+    const pointsEarned = Math.floor(timeSpent / 300);
     if (pointsEarned > 0) {
       await db.collection('users').updateOne(
         { _id: new ObjectId(userId) },
@@ -34,9 +33,9 @@ export default async function handler(req, res) {
       );
     }
 
-    res.status(200).json({ success: true, message: 'Reading progress updated' });
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error('❌ TRACKING ERROR:', error);
-        res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 }
