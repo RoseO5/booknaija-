@@ -27,30 +27,14 @@ export default function BookDetail() {
       .catch(() => setBook({ error: 'Failed to load book' }));
   }, [id]);
 
-  const handleReadBook = async () => {
+  const handleReadBook = () => {
     if (!session?.user?.email || !book?._id) {
       alert('❌ Please log in to read this book.');
       return;
     }
 
-    setIsLoadingLink(true);
-    try {
-      const res = await fetch(`/api/books/access?bookId=${book._id}&userEmail=${encodeURIComponent(session.user.email)}`);
-      const data = await res.json();
-
-      if (res.ok && data.url) {
-        // ✅ OPEN THE SECURE PROXY INSTEAD OF CLOUDINARY DIRECTLY
-        const proxyUrl = `/api/read-pdf?id=${book._id}`;
-        console.log('📖 Opening secure proxy:', proxyUrl);
-        window.open(proxyUrl, '_blank');
-      } else {
-        alert('❌ ' + (data.error || 'Failed to access book'));
-      }
-    } catch (err: any) {
-      alert('❌ Network Error: ' + err.message);
-    } finally {
-      setIsLoadingLink(false);
-    }
+    // ✅ Open the PDF Reader page (no downloads, no browser PDF viewer issues!)
+    window.open(`/reader?id=${book._id}`, '_blank');
   };
 
   useEffect(() => {
@@ -102,8 +86,8 @@ export default function BookDetail() {
           </div>
         )}
 
-        <button onClick={handleReadBook} disabled={isLoadingLink} style={{ display: 'inline-block', padding: '15px 30px', background: isLoadingLink ? '#999' : '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '16px', cursor: isLoadingLink ? 'not-allowed' : 'pointer' }}>
-          {isLoadingLink ? '⏳ Generating Link...' : '📖 Read Book Now'}
+        <button onClick={handleReadBook} style={{ display: 'inline-block', padding: '15px 30px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '16px', cursor: 'pointer' }}>
+          📖 Read Book Now
         </button>
 
         {showMarkButton && (
