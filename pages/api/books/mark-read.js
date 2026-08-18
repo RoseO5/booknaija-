@@ -5,23 +5,39 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   try {
-    const { userId, bookId, timeSpent } = req.body;
+    const { userId, bookId } = req.body; 
     if (!userId || !bookId) return res.status(400).json({ error: 'userId and bookId required' });
 
     const client = await clientPromise;
     const db = client.db('booknaija');
 
-    // Record the read (only if they spent 5+ minutes = 300 seconds)
-    const isCompleted = timeSpent >= 300;
+    // 1. 🛡️ ANTI-CHEAT: Verify the server-side tracked time
+    // Note: reading_progress stores userId and bookId as STRINGS from the frontend
+    const progress = await db.collection('reading_progress').findOne({
+      userId: userId, 
+      bookId: bookId
+    });
 
+    const serverTimeSpent = progress ? progress.totalTimeSpent : 0;
+    const isCompleted = serverTimeSpent >= 300; // Must have spent 5+ mins in the actual reader
+
+    if (!isCompleted) {
+      const mins = Math.floor(serverTimeSpent / 60);
+      const secs = serverTimeSpent % 60;
+      return res.status(400).json({ 
+        error: `Please read the book in the secure reader for at least 5 minutes. Your tracked time is currently ${mins}m ${secs}s.` 
+      });
+    }
+
+    // 2. Record the valid completion in the 'reads' collection
     await db.collection('reads').updateOne(
       { userId: new ObjectId(userId), bookId: new ObjectId(bookId) },
       {
         $set: {
           userId: new ObjectId(userId),
           bookId: new ObjectId(bookId),
-          timeSpent,
-          completed: isCompleted,
+          timeSpent: serverTimeSpent,
+          completed: true,
           lastReadAt: new Date()
         },
         $setOnInsert: {
@@ -31,7 +47,7 @@ export default async function handler(req, res) {
       { upsert: true }
     );
 
-    // Count total completed books in last 6 months for competition
+    // 3. Count total completed books in last 6 months for competition
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
@@ -41,11 +57,12 @@ export default async function handler(req, res) {
       lastReadAt: { $gte: sixMonthsAgo }
     });
 
-    res.status(200).json({ 
-      success: true, 
-      completed: isCompleted,
+    res.status(200).json({
+      success: true,
+      completed: true,
       totalBooksRead: completedCount,
-      progressToPrize: `${completedCount}/50 books`
+      progressToPrize: `${completedCount}/50 books`,
+      trackedTime: serverTimeSpent
     });
   } catch (error) {
     console.error('Mark read error:', error);

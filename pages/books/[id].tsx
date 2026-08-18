@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import PremiumGate from '../../components/PremiumGate';
@@ -10,11 +10,9 @@ export default function BookDetail() {
   const { data: session } = useSession();
 
   const [book, setBook] = useState<any>(null);
-  const [elapsed, setElapsed] = useState(0);
   const [markedRead, setMarkedRead] = useState(false);
   const [readResult, setReadResult] = useState<any>(null);
-  const [isLoadingLink, setIsLoadingLink] = useState(false);
-  const timerRef = useRef<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -32,31 +30,38 @@ export default function BookDetail() {
       alert('❌ Please log in to read this book.');
       return;
     }
-
-    // ✅ Open the PDF Reader page (no downloads, no browser PDF viewer issues!)
     window.open(`/reader?id=${book._id}`, '_blank');
   };
 
-  useEffect(() => {
-    if (!session?.user?.subscription?.active) return;
-    if (!book || (book as any).error) return;
-    timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [session?.user?.subscription?.active, book]);
-
   const handleMarkAsRead = async () => {
     if (!session?.user?.id || !book?._id) return;
+    setIsProcessing(true);
+    
     try {
       const res = await fetch('/api/books/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: session.user.id, bookId: book._id, timeSpent: elapsed })
+        body: JSON.stringify({ 
+          userId: session.user.id, 
+          bookId: book._id 
+          // We NO LONGER send timeSpent. The server checks the real tracked time!
+        })
       });
+      
       const data = await res.json();
-      setReadResult(data);
-      setMarkedRead(true);
-      if (timerRef.current) clearInterval(timerRef.current);
-    } catch (err) { alert('Failed to mark as read'); }
+      
+      if (res.ok && data.success) {
+        setReadResult(data);
+        setMarkedRead(true);
+      } else {
+        // Show the friendly server message if they haven't read enough
+        alert('⏳ ' + (data.error || 'Failed to mark as read'));
+      }
+    } catch (err: any) { 
+      alert('❌ Network Error: ' + err.message); 
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!book) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading book...</div>;
@@ -67,10 +72,6 @@ export default function BookDetail() {
     </div>
   );
 
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = elapsed % 60;
-  const showMarkButton = elapsed >= 300 && !markedRead;
-
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: 'Arial' }}>
       <button onClick={() => router.push('/books')} style={{ marginBottom: '20px', padding: '8px 16px', background: '#f1f1f1', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>← Back to Books</button>
@@ -79,25 +80,32 @@ export default function BookDetail() {
       <p style={{ color: '#666', marginBottom: '25px', fontSize: '16px' }}>By <strong>{book.authorName}</strong></p>
 
       <PremiumGate>
-        {session?.user?.subscription?.active && (
-          <div style={{ background: '#e7f3ff', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '15px', border: '1px solid #b8daff' }}>
-            ⏱️ Reading time: <strong>{minutes}m {seconds}s</strong>
-            {!markedRead && elapsed < 300 && <span style={{ color: '#666', marginLeft: '10px', fontSize: '13px' }}>(Read for 5 minutes to mark as complete)</span>}
-          </div>
-        )}
+        <div style={{ background: '#e7f3ff', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '15px', border: '1px solid #b8daff' }}>
+          📖 <strong>How to earn prize points:</strong><br/>
+          1. Click "Read Book Now" to open the secure reader.<br/>
+          2. Read for at least <strong>5 minutes</strong> (the reader tracks your time securely).<br/>
+          3. Return here and click "✅ Mark as Read" to claim your progress!
+        </div>
 
         <button onClick={handleReadBook} style={{ display: 'inline-block', padding: '15px 30px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginRight: '10px', fontSize: '16px', cursor: 'pointer' }}>
           📖 Read Book Now
         </button>
 
-        {showMarkButton && (
-          <button onClick={handleMarkAsRead} style={{ padding: '15px 30px', background: '#28a745', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>✅ Mark as Read</button>
+        {!markedRead && (
+          <button 
+            onClick={handleMarkAsRead} 
+            disabled={isProcessing}
+            style={{ padding: '15px 30px', background: isProcessing ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isProcessing ? 'not-allowed' : 'pointer', fontSize: '16px' }}
+          >
+            {isProcessing ? '⏳ Verifying...' : '✅ Mark as Read'}
+          </button>
         )}
 
         {markedRead && readResult && (
           <div style={{ background: '#d4edda', padding: '20px', borderRadius: '8px', marginTop: '20px', color: '#155724', border: '1px solid #c3e6cb' }}>
             <strong style={{ fontSize: '18px' }}>✅ Book marked as read!</strong><br/>
-            <p style={{ margin: '10px 0 0', fontSize: '15px' }}>📚 Competition progress: <strong>{readResult.progressToPrize || 'Updated'}</strong></p>
+            <p style={{ margin: '10px 0 0', fontSize: '15px' }}>📚 Competition progress: <strong>{readResult.progressToPrize}</strong></p>
+            <p style={{ margin: '5px 0 0', fontSize: '13px', opacity: 0.8 }}>Verified reading time: {Math.floor(readResult.trackedTime / 60)}m {readResult.trackedTime % 60}s</p>
           </div>
         )}
       </PremiumGate>
