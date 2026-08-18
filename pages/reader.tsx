@@ -9,6 +9,7 @@ export default function PDFReader() {
   const { data: session } = useSession();
   
   const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [viewerUrl, setViewerUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [secondsRead, setSecondsRead] = useState(0);
@@ -17,12 +18,15 @@ export default function PDFReader() {
   useEffect(() => {
     if (!id || !session?.user?.email) return;
 
-    // 1. Fetch the secure inline URL
+    // 1. Fetch the secure inline URL from our API
     fetch(`/api/books/access?bookId=${id}&userEmail=${encodeURIComponent(session.user.email)}`)
       .then(r => r.json())
       .then(data => {
         if (data.url) {
           setPdfUrl(data.url);
+          // 2. MAGIC FIX: Wrap the PDF URL in Mozilla's PDF.js viewer
+          // This forces mobile browsers to render it as a webpage, preventing downloads!
+          setViewerUrl(`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(data.url)}`);
         } else {
           setError(data.error || 'Failed to load book');
         }
@@ -33,19 +37,18 @@ export default function PDFReader() {
         setIsLoading(false);
       });
 
-    // 2. ANTI-CHEAT: Disable right-click on the entire reader page
+    // 3. ANTI-CHEAT: Disable right-click/long-press on the entire reader page
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       return false;
     };
     document.addEventListener('contextmenu', handleContextMenu);
 
-    // 3. HEARTBEAT TRACKING: Ping server every 30 seconds to log real reading time
+    // 4. HEARTBEAT TRACKING: Ping server every 30 seconds to log real reading time
     heartbeatRef.current = setInterval(() => {
       setSecondsRead(prev => {
         const newTime = prev + 30;
         
-        // Securely log this 30 seconds to the database for the prize draw
         fetch('/api/books/track-reading', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -92,41 +95,42 @@ export default function PDFReader() {
   }
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', background: '#333' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', background: '#333', overflow: 'hidden' }}>
       {/* Header Bar */}
-      <div style={{ padding: '10px 20px', background: '#667eea', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+      <div style={{ padding: '10px 20px', background: '#667eea', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 20 }}>
         <button onClick={() => router.push('/books')} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-          ← Exit Reader
+          ← Exit
         </button>
         <div style={{ textAlign: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '16px' }}>📖 BookNaija Reader</h3>
-          <span style={{ fontSize: '12px', opacity: 0.9 }}>⏱️ Time Read: {Math.floor(secondsRead / 60)}m {secondsRead % 60}s</span>
+          <span style={{ fontSize: '12px', opacity: 0.9 }}>⏱️ {Math.floor(secondsRead / 60)}m {secondsRead % 60}s</span>
         </div>
-        <div style={{ width: '100px' }}></div>
+        <div style={{ width: '60px' }}></div>
       </div>
 
-      {/* ANTI-CHEAT WATERMARK: Subtly overlays the user's email to discourage screenshots/sharing */}
+      {/* ANTI-CHEAT WATERMARK: Overlays the viewer to discourage screenshots */}
       <div style={{
         position: 'absolute',
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%) rotate(-30deg)',
-        fontSize: '24px',
+        fontSize: '20px',
         color: 'rgba(255, 255, 255, 0.15)',
         pointerEvents: 'none',
         zIndex: 10,
         whiteSpace: 'nowrap',
         fontWeight: 'bold',
-        textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
+        textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
       }}>
         BookNaija • {session?.user?.email} • Do Not Share
       </div>
 
-      {/* PDF Viewer - Full Screen. The 'fl_inline' flag from the API forces it to render here, not download. */}
+      {/* PDF Viewer: Uses Mozilla's engine, which works perfectly on ALL mobile phones */}
       <iframe
-        src={pdfUrl}
+        src={viewerUrl}
         style={{ flex: 1, width: '100%', border: 'none', background: '#525659' }}
         title="PDF Reader"
+        allow="fullscreen"
       />
     </div>
   );
