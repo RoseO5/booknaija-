@@ -54,6 +54,47 @@ export default function AuthorDashboard() {
         Welcome, {data.author?.name}!
       </p>
 
+      {/* ✅ NEW: Authors WhatsApp Community Section */}
+      <div style={{
+        background:'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+        padding:'25px',
+        borderRadius:'12px',
+        color:'white',
+        textAlign:'center',
+        marginBottom:'30px',
+        boxShadow:'0 4px 12px rgba(37,211,102,0.3)'
+      }}>
+        <div style={{fontSize:'48px',marginBottom:'10px'}}>💬</div>
+        <h3 style={{marginTop:0,marginBottom:'10px',fontSize:'22px'}}>Join the BookNaija Authors Community</h3>
+        <p style={{margin:'0 0 20px',fontSize:'15px',opacity:0.95,lineHeight:'1.6'}}>
+          Connect with fellow Nigerian authors, share writing tips, get platform updates, and be part of a growing literary family!
+        </p>
+        <a 
+          href="https://chat.whatsapp.com/CXGZwp4tcdR5TwXFp53lye?s=cl&p=a&ilr=1" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{
+            display:'inline-block',
+            padding:'14px 35px',
+            background:'white',
+            color:'#128C7E',
+            textDecoration:'none',
+            borderRadius:'30px',
+            fontWeight:'bold',
+            fontSize:'16px',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.2)',
+            transition:'transform 0.2s'
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          💚 Join Authors WhatsApp Group
+        </a>
+        <p style={{margin:'15px 0 0',fontSize:'12px',opacity:0.85,fontStyle:'italic'}}>
+          Only verified BookNaija authors • Exclusive community
+        </p>
+      </div>
+
       {/* Earnings Overview */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'15px',marginBottom:'30px'}}>
         <div style={{background:'linear-gradient(135deg,#28a745 0%,#20c997 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center'}}>
@@ -85,7 +126,7 @@ export default function AuthorDashboard() {
             <li><strong>30%</strong> based on unique readers who read your books</li>
           </ul>
         </div>
-        
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'15px'}}>
           <div>
             <div style={{fontSize:'14px',color:'#666'}}>Minutes Share</div>
