@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const db = client.db('booknaija');
   
   // ✅ NEW: If a genre is provided, save it along with the status
-  const updateData: any = { status, updatedAt: new Date() };
+  const updateData = { status, updatedAt: new Date() };
   if (genre) {
     updateData.genre = genre;
   }
