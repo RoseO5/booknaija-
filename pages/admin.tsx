@@ -19,7 +19,9 @@ export default function Admin() {
   const [authors, setAuthors] = useState<any[]>([]);
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
-  const [publishedBooks, setPublishedBooks] = useState<any[]>([]); // ✅ NEW
+  const [publishedBooks, setPublishedBooks] = useState<any[]>([]);
+  const [readersList, setReadersList] = useState<any[]>([]); // ✅ NEW
+  const [searchQuery, setSearchQuery] = useState(''); // ✅ NEW
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -46,7 +48,14 @@ export default function Admin() {
         });
         setPendingBooks(data.pending || []);
         setFlaggedBooks(data.flagged || []);
-        setPublishedBooks(data.published || []); // ✅ NEW
+        setPublishedBooks(data.published || []);
+      });
+    }
+
+    if (activeTab === 'members') { // ✅ NEW
+      fetch('/api/admin/readers').then(r => r.json()).then(data => {
+        setReadersList(data.readers || []);
+        setStats(prev => ({ ...prev, users: data.readers?.length || 0 }));
       });
     }
 
@@ -115,14 +124,12 @@ export default function Admin() {
     const data = await res.json();
     setPendingBooks(data.pending || []);
     setFlaggedBooks(data.flagged || []);
-    setPublishedBooks(data.published || []); // ✅ NEW
+    setPublishedBooks(data.published || []);
     setStats(prev => ({ ...prev, pending: data.pending?.length || 0, flagged: data.flagged?.length || 0, totalBooks: data.total || 0 }));
   };
 
-  // ✅ NEW: Delete Book Function
   const deleteBook = async (id: string) => {
     if (!confirm('⚠️ Are you sure you want to PERMANENTLY delete this book? This cannot be undone.')) return;
-    
     try {
       const res = await fetch('/api/books/delete', {
         method: 'POST',
@@ -144,6 +151,15 @@ export default function Admin() {
     }
   };
 
+  // ✅ NEW: Copy email to clipboard
+  const copyEmail = (email: string) => {
+    navigator.clipboard.writeText(email).then(() => {
+      alert(`✅ Copied: ${email}\n\nYou can now paste this into WhatsApp to verify the user!`);
+    }).catch(() => {
+      alert('❌ Failed to copy email');
+    });
+  };
+
   if (!authenticated) {
     return (
       <div style={{ padding: '30px', maxWidth: '400px', margin: '100px auto', fontFamily: 'Arial' }}>
@@ -158,20 +174,84 @@ export default function Admin() {
     );
   }
 
+  // ✅ NEW: Filter readers by search query
+  const filteredReaders = readersList.filter(r => 
+    r.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'Arial' }}>
       <h1 style={{ color: '#667eea', textAlign: 'center' }}>🛡️ Admin Dashboard</h1>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button onClick={() => setActiveTab('analytics')} style={{ padding: '10px 15px', background: activeTab === 'analytics' ? '#6c757d' : '#f1f1f1', color: activeTab === 'analytics' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📊 Analytics</button>
+        <button onClick={() => setActiveTab('members')} style={{ padding: '10px 15px', background: activeTab === 'members' ? '#17a2b8' : '#f1f1f1', color: activeTab === 'members' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>👥 Members ({stats.users})</button> {/* ✅ NEW */}
         <button onClick={() => setActiveTab('revenue')} style={{ padding: '10px 15px', background: activeTab === 'revenue' ? '#28a745' : '#f1f1f1', color: activeTab === 'revenue' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>💰 Revenue</button>
-        <button onClick={() => setActiveTab('readers')} style={{ padding: '10px 15px', background: activeTab === 'readers' ? '#667eea' : '#f1f1f1', color: activeTab === 'readers' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📚 Reader Progress</button>
-        <button onClick={() => setActiveTab('manage')} style={{ padding: '10px 15px', background: activeTab === 'manage' ? '#6f42c1' : '#f1f1f1', color: activeTab === 'manage' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📚 Manage Published</button> {/* ✅ NEW */}
+        <button onClick={() => setActiveTab('readers')} style={{ padding: '10px 15px', background: activeTab === 'readers' ? '#667eea' : '#f1f1f1', color: activeTab === 'readers' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>🏆 Prize Progress</button>
+        <button onClick={() => setActiveTab('manage')} style={{ padding: '10px 15px', background: activeTab === 'manage' ? '#6f42c1' : '#f1f1f1', color: activeTab === 'manage' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📚 Manage Published</button>
         <button onClick={() => setActiveTab('upload')} style={{ padding: '10px 15px', background: activeTab === 'upload' ? '#667eea' : '#f1f1f1', color: activeTab === 'upload' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📤 Upload</button>
         <button onClick={() => setActiveTab('approve')} style={{ padding: '10px 15px', background: activeTab === 'approve' ? '#17a2b8' : '#f1f1f1', color: activeTab === 'approve' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✅ Approve ({stats.pending})</button>
         <button onClick={() => setActiveTab('abuse')} style={{ padding: '10px 15px', background: activeTab === 'abuse' ? '#dc3545' : '#f1f1f1', color: activeTab === 'abuse' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>🛡️ Abuse ({stats.flagged})</button>
         <button onClick={() => setActiveTab('authors')} style={{ padding: '10px 15px', background: activeTab === 'authors' ? '#fd7e14' : '#f1f1f1', color: activeTab === 'authors' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✍️ Authors ({authors.length})</button>
       </div>
+
+      {/* ✅ NEW: MEMBERS TAB */}
+      {activeTab === 'members' && (
+        <div>
+          <h3>👥 Registered Members</h3>
+          <p style={{ color: '#666', marginBottom: '15px' }}>Use this list to verify users before approving their WhatsApp group requests.</p>
+          
+          {/* Search Bar */}
+          <input 
+            type="text" 
+            placeholder="🔍 Search by name or email..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: '100%', padding: '12px', marginBottom: '20px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+          />
+
+          {filteredReaders.length === 0 ? (
+            <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No members found.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {filteredReaders.map((r: any) => (
+                <div key={r.id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                      <strong style={{ fontSize: '16px' }}>{r.name}</strong>
+                      <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>📧 {r.email}</div>
+                      {r.phone && r.phone !== 'Not provided' && <div style={{ fontSize: '13px', color: '#888' }}>📱 {r.phone}</div>}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ 
+                        display: 'inline-block', 
+                        padding: '4px 10px', 
+                        borderRadius: '12px', 
+                        fontSize: '12px', 
+                        fontWeight: 'bold',
+                        background: r.isSubscribed ? '#d4edda' : '#f8d7da',
+                        color: r.isSubscribed ? '#155724' : '#721c24'
+                      }}>
+                        {r.isSubscribed ? '✅ Active Subscriber' : '⚠️ Inactive'}
+                      </span>
+                      <div style={{ fontSize: '13px', color: '#666', marginTop: '8px' }}>
+                        📚 {r.booksRead} books • ⏱️ {r.totalMinutes} mins
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => copyEmail(r.email)}
+                    style={{ padding: '8px 16px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', alignSelf: 'flex-start' }}
+                  >
+                    📋 Copy Email for WhatsApp Verification
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ANALYTICS TAB */}
       {activeTab === 'analytics' && (
@@ -219,7 +299,7 @@ export default function Admin() {
       {/* READER PROGRESS TAB */}
       {activeTab === 'readers' && readerProgress && (
         <div>
-          <h3>📚 Reader Progress & Prize Draw</h3>
+          <h3>🏆 Reader Progress & Prize Draw</h3>
           <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '12px', marginBottom: '20px' }}>
             <h4>🏆 Prize Status</h4>
             <p><strong>Qualified Readers:</strong> {readerProgress.prizeDrawInfo?.qualifiedCount} (need 3+ to draw)</p>
@@ -255,7 +335,7 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ✅ NEW: MANAGE PUBLISHED TAB */}
+      {/* MANAGE PUBLISHED TAB */}
       {activeTab === 'manage' && (
         <div>
           <h3>📚 Manage Published Books</h3>
