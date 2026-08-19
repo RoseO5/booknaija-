@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 
+const GENRES = ['Fiction', 'Christian Devotionals', 'Poetry', 'Self-Help', 'Non-Fiction'];
+
 export default function Admin() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -20,8 +22,8 @@ export default function Admin() {
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
   const [publishedBooks, setPublishedBooks] = useState<any[]>([]);
-  const [readersList, setReadersList] = useState<any[]>([]); // ✅ NEW
-  const [searchQuery, setSearchQuery] = useState(''); // ✅ NEW
+  const [readersList, setReadersList] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -35,90 +37,60 @@ export default function Admin() {
 
   useEffect(() => {
     if (!authenticated) return;
-
     if (activeTab === 'analytics' || activeTab === 'approve' || activeTab === 'abuse' || activeTab === 'manage') {
       fetch('/api/books/admin-list').then(r => r.json()).then(data => {
-        setStats({
-          totalBooks: data.total || 0,
-          pending: data.pending?.length || 0,
-          flagged: data.flagged?.length || 0,
-          users: data.users || 0,
-          reads: data.reads || 0,
-          authors: data.authors || 0
-        });
+        setStats({ totalBooks: data.total || 0, pending: data.pending?.length || 0, flagged: data.flagged?.length || 0, users: data.users || 0, reads: data.reads || 0, authors: data.authors || 0 });
         setPendingBooks(data.pending || []);
         setFlaggedBooks(data.flagged || []);
         setPublishedBooks(data.published || []);
       });
     }
-
-    if (activeTab === 'members') { // ✅ NEW
+    if (activeTab === 'members') {
       fetch('/api/admin/readers').then(r => r.json()).then(data => {
         setReadersList(data.readers || []);
         setStats(prev => ({ ...prev, users: data.readers?.length || 0 }));
       });
     }
-
-    if (activeTab === 'revenue') {
-      fetch('/api/revenue/calculate').then(r => r.json()).then(data => setRevenue(data)).catch(() => {});
-    }
-    if (activeTab === 'readers') {
-      fetch('/api/competition/progress').then(r => r.json()).then(data => setReaderProgress(data)).catch(() => {});
-    }
-    if (activeTab === 'authors') {
-      fetch('/api/authors/list').then(r => r.json()).then(data => setAuthors(data.authors || [])).catch(() => {});
-    }
+    if (activeTab === 'revenue') fetch('/api/revenue/calculate').then(r => r.json()).then(data => setRevenue(data)).catch(() => {});
+    if (activeTab === 'readers') fetch('/api/competition/progress').then(r => r.json()).then(data => setReaderProgress(data)).catch(() => {});
+    if (activeTab === 'authors') fetch('/api/authors/list').then(r => r.json()).then(data => setAuthors(data.authors || [])).catch(() => {});
   }, [authenticated, activeTab]);
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
-    const res = await fetch('/api/verify-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
+    const res = await fetch('/api/verify-admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
     const result = await res.json();
-    if (result.valid) {
-      setAuthenticated(true);
-    } else {
-      setLoginError('❌ Incorrect password');
-      setTimeout(() => setLoginError(''), 2000);
-    }
+    if (result.valid) setAuthenticated(true);
+    else { setLoginError('❌ Incorrect password'); setTimeout(() => setLoginError(''), 2000); }
   };
 
   const sendAuthorReports = async () => {
     if (!confirm('Send monthly earnings reports to all authors?')) return;
-    setSendingEmails(true);
-    setEmailResult(null);
+    setSendingEmails(true); setEmailResult(null);
     try {
       const res = await fetch('/api/authors/send-reports', { method: 'POST' });
       const result = await res.json();
       setEmailResult(result);
       if (result.success) alert(`✅ Sent ${result.sent} reports successfully!`);
       else alert('❌ ' + (result.error || 'Failed to send reports'));
-    } catch (error) {
-      alert('❌ Network error');
-    } finally {
-      setSendingEmails(false);
-    }
+    } catch (error) { alert('❌ Network error'); }
+    finally { setSendingEmails(false); }
   };
 
   const conductPrizeDraw = async () => {
     if (!confirm('Are you sure you want to conduct the prize draw?')) return;
     const res = await fetch('/api/competition/draw', { method: 'POST' });
     const result = await res.json();
-    if (result.success) {
-      alert(`🎉 Winners Selected!\n\n${result.winners.map((w: any) => `#${w.rank}: ${w.name} - ₦${w.prize}`).join('\n')}`);
-    } else {
-      alert('❌ ' + result.message);
-    }
+    if (result.success) alert(`🎉 Winners Selected!\n\n${result.winners.map((w: any) => `#${w.rank}: ${w.name} - ₦${w.prize}`).join('\n')}`);
+    else alert('❌ ' + result.message);
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  // ✅ UPDATED: Now accepts genre
+  const updateStatus = async (id: string, status: string, genre?: string) => {
     await fetch('/api/books/update-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookId: id, status })
+      body: JSON.stringify({ bookId: id, status, genre })
     });
     const res = await fetch('/api/books/admin-list');
     const data = await res.json();
@@ -131,11 +103,7 @@ export default function Admin() {
   const deleteBook = async (id: string) => {
     if (!confirm('⚠️ Are you sure you want to PERMANENTLY delete this book? This cannot be undone.')) return;
     try {
-      const res = await fetch('/api/books/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: id })
-      });
+      const res = await fetch('/api/books/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookId: id }) });
       const result = await res.json();
       if (result.success) {
         alert('✅ Book deleted successfully!');
@@ -143,21 +111,12 @@ export default function Admin() {
         const data = await listRes.json();
         setPublishedBooks(data.published || []);
         setStats(prev => ({ ...prev, totalBooks: data.total || 0 }));
-      } else {
-        alert('❌ ' + (result.error || 'Failed to delete book'));
-      }
-    } catch (error) {
-      alert('❌ Network error');
-    }
+      } else { alert('❌ ' + (result.error || 'Failed to delete book')); }
+    } catch (error) { alert('❌ Network error'); }
   };
 
-  // ✅ NEW: Copy email to clipboard
   const copyEmail = (email: string) => {
-    navigator.clipboard.writeText(email).then(() => {
-      alert(`✅ Copied: ${email}\n\nYou can now paste this into WhatsApp to verify the user!`);
-    }).catch(() => {
-      alert('❌ Failed to copy email');
-    });
+    navigator.clipboard.writeText(email).then(() => alert(`✅ Copied: ${email}\n\nYou can now paste this into WhatsApp to verify the user!`)).catch(() => alert('❌ Failed to copy email'));
   };
 
   if (!authenticated) {
@@ -174,19 +133,14 @@ export default function Admin() {
     );
   }
 
-  // ✅ NEW: Filter readers by search query
-  const filteredReaders = readersList.filter(r => 
-    r.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    r.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredReaders = readersList.filter(r => r.email.toLowerCase().includes(searchQuery.toLowerCase()) || r.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'Arial' }}>
       <h1 style={{ color: '#667eea', textAlign: 'center' }}>🛡️ Admin Dashboard</h1>
-
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button onClick={() => setActiveTab('analytics')} style={{ padding: '10px 15px', background: activeTab === 'analytics' ? '#6c757d' : '#f1f1f1', color: activeTab === 'analytics' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📊 Analytics</button>
-        <button onClick={() => setActiveTab('members')} style={{ padding: '10px 15px', background: activeTab === 'members' ? '#17a2b8' : '#f1f1f1', color: activeTab === 'members' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>👥 Members ({stats.users})</button> {/* ✅ NEW */}
+        <button onClick={() => setActiveTab('members')} style={{ padding: '10px 15px', background: activeTab === 'members' ? '#17a2b8' : '#f1f1f1', color: activeTab === 'members' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>👥 Members ({stats.users})</button>
         <button onClick={() => setActiveTab('revenue')} style={{ padding: '10px 15px', background: activeTab === 'revenue' ? '#28a745' : '#f1f1f1', color: activeTab === 'revenue' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>💰 Revenue</button>
         <button onClick={() => setActiveTab('readers')} style={{ padding: '10px 15px', background: activeTab === 'readers' ? '#667eea' : '#f1f1f1', color: activeTab === 'readers' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>🏆 Prize Progress</button>
         <button onClick={() => setActiveTab('manage')} style={{ padding: '10px 15px', background: activeTab === 'manage' ? '#6f42c1' : '#f1f1f1', color: activeTab === 'manage' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📚 Manage Published</button>
@@ -196,24 +150,13 @@ export default function Admin() {
         <button onClick={() => setActiveTab('authors')} style={{ padding: '10px 15px', background: activeTab === 'authors' ? '#fd7e14' : '#f1f1f1', color: activeTab === 'authors' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✍️ Authors ({authors.length})</button>
       </div>
 
-      {/* ✅ NEW: MEMBERS TAB */}
+      {/* MEMBERS TAB */}
       {activeTab === 'members' && (
         <div>
           <h3>👥 Registered Members</h3>
           <p style={{ color: '#666', marginBottom: '15px' }}>Use this list to verify users before approving their WhatsApp group requests.</p>
-          
-          {/* Search Bar */}
-          <input 
-            type="text" 
-            placeholder="🔍 Search by name or email..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: '100%', padding: '12px', marginBottom: '20px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
-          />
-
-          {filteredReaders.length === 0 ? (
-            <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No members found.</p>
-          ) : (
+          <input type="text" placeholder="🔍 Search by name or email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '20px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+          {filteredReaders.length === 0 ? <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No members found.</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {filteredReaders.map((r: any) => (
                 <div key={r.id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -224,28 +167,11 @@ export default function Admin() {
                       {r.phone && r.phone !== 'Not provided' && <div style={{ fontSize: '13px', color: '#888' }}>📱 {r.phone}</div>}
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ 
-                        display: 'inline-block', 
-                        padding: '4px 10px', 
-                        borderRadius: '12px', 
-                        fontSize: '12px', 
-                        fontWeight: 'bold',
-                        background: r.isSubscribed ? '#d4edda' : '#f8d7da',
-                        color: r.isSubscribed ? '#155724' : '#721c24'
-                      }}>
-                        {r.isSubscribed ? '✅ Active Subscriber' : '⚠️ Inactive'}
-                      </span>
-                      <div style={{ fontSize: '13px', color: '#666', marginTop: '8px' }}>
-                        📚 {r.booksRead} books • ⏱️ {r.totalMinutes} mins
-                      </div>
+                      <span style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', background: r.isSubscribed ? '#d4edda' : '#f8d7da', color: r.isSubscribed ? '#155724' : '#721c24' }}>{r.isSubscribed ? '✅ Active Subscriber' : '⚠️ Inactive'}</span>
+                      <div style={{ fontSize: '13px', color: '#666', marginTop: '8px' }}>📚 {r.booksRead} books • ⏱️ {r.totalMinutes} mins</div>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => copyEmail(r.email)}
-                    style={{ padding: '8px 16px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', alignSelf: 'flex-start' }}
-                  >
-                    📋 Copy Email for WhatsApp Verification
-                  </button>
+                  <button onClick={() => copyEmail(r.email)} style={{ padding: '8px 16px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', alignSelf: 'flex-start' }}>📋 Copy Email for WhatsApp Verification</button>
                 </div>
               ))}
             </div>
@@ -281,9 +207,7 @@ export default function Admin() {
           <div style={{ background: '#e7f3ff', padding: '20px', borderRadius: '12px', marginBottom: '20px' }}>
             <h4 style={{ marginTop: 0, color: '#004085' }}>📧 Author Reports</h4>
             <p style={{ color: '#004085', marginBottom: '15px' }}>Send monthly earnings reports to all authors automatically</p>
-            <button onClick={sendAuthorReports} disabled={sendingEmails} style={{ padding: '12px 30px', background: sendingEmails ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: sendingEmails ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}>
-              {sendingEmails ? '📧 Sending...' : '📧 Send Reports to All Authors'}
-            </button>
+            <button onClick={sendAuthorReports} disabled={sendingEmails} style={{ padding: '12px 30px', background: sendingEmails ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: sendingEmails ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}>{sendingEmails ? '📧 Sending...' : '📧 Send Reports to All Authors'}</button>
             {emailResult && <p style={{ marginTop: '15px', color: '#155724' }}>✅ Sent {emailResult.sent} of {emailResult.total} reports</p>}
           </div>
           <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
@@ -312,15 +236,11 @@ export default function Admin() {
           <div style={{ display: 'grid', gap: '15px' }}>
             <div style={{ background: '#d4edda', padding: '15px', borderRadius: '8px' }}>
               <h4>✅ Qualified (50+ books) - {readerProgress.categories?.qualified?.count} readers</h4>
-              {readerProgress.categories?.qualified?.readers?.map((r: any, i: number) => (
-                <div key={i} style={{ padding: '8px', background: 'white', borderRadius: '6px', marginBottom: '5px' }}><strong>{r.name}</strong> - {r.booksRead} books {r.status}</div>
-              ))}
+              {readerProgress.categories?.qualified?.readers?.map((r: any, i: number) => (<div key={i} style={{ padding: '8px', background: 'white', borderRadius: '6px', marginBottom: '5px' }}><strong>{r.name}</strong> - {r.booksRead} books {r.status}</div>))}
             </div>
             <div style={{ background: '#fff3cd', padding: '15px', borderRadius: '8px' }}>
               <h4>🔥 Nearly Qualified (40-49 books) - {readerProgress.categories?.nearlyQualified?.count} readers</h4>
-              {readerProgress.categories?.nearlyQualified?.readers?.slice(0, 5).map((r: any, i: number) => (
-                <div key={i} style={{ padding: '8px', background: 'white', borderRadius: '6px', marginBottom: '5px' }}><strong>{r.name}</strong> - {r.booksRead} books ({r.progress})</div>
-              ))}
+              {readerProgress.categories?.nearlyQualified?.readers?.slice(0, 5).map((r: any, i: number) => (<div key={i} style={{ padding: '8px', background: 'white', borderRadius: '6px', marginBottom: '5px' }}><strong>{r.name}</strong> - {r.booksRead} books ({r.progress})</div>))}
             </div>
           </div>
         </div>
@@ -340,9 +260,7 @@ export default function Admin() {
         <div>
           <h3>📚 Manage Published Books</h3>
           <p style={{ color: '#666', marginBottom: '20px' }}>Delete duplicate or unwanted published books. This action cannot be undone.</p>
-          {publishedBooks.length === 0 ? (
-            <p style={{ color: '#666' }}>No published books found.</p>
-          ) : (
+          {publishedBooks.length === 0 ? <p style={{ color: '#666' }}>No published books found.</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {publishedBooks.map((b: any) => (
                 <div key={b._id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
@@ -369,8 +287,15 @@ export default function Admin() {
                 <div key={b._id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
                   <strong>{b.title}</strong> by {b.authorName}<br/>
                   <small style={{ color: '#666' }}>📅 {new Date(b.createdAt).toLocaleDateString()}</small>
-                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <button onClick={() => updateStatus(b._id, 'published')} style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✅ Approve</button>
+                  {/* ✅ NEW: Genre Dropdown next to Approve button */}
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <select id={`genre-${b._id}`} style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '13px' }}>
+                      {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <button onClick={() => {
+                      const genreSelect = document.getElementById(`genre-${b._id}`) as HTMLSelectElement;
+                      updateStatus(b._id, 'published', genreSelect.value);
+                    }} style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✅ Approve</button>
                     <button onClick={() => updateStatus(b._id, 'rejected')} style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🚫 Reject</button>
                     <a href={`/admin-preview?id=${b._id}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '4px', textDecoration: 'none' }}>👁️ Preview</a>
                   </div>
@@ -394,9 +319,7 @@ export default function Admin() {
             </ul>
           </div>
           {flaggedBooks.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', background: '#d4edda', borderRadius: '12px' }}>
-              <p style={{ color: '#155724', fontSize: '18px', margin: 0 }}>✅ No flagged books. System is clean!</p>
-            </div>
+            <div style={{ textAlign: 'center', padding: '40px', background: '#d4edda', borderRadius: '12px' }}><p style={{ color: '#155724', fontSize: '18px', margin: 0 }}>✅ No flagged books. System is clean!</p></div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {flaggedBooks.map((b: any) => (
@@ -409,9 +332,7 @@ export default function Admin() {
                     <span style={{ background: '#dc3545', color: 'white', padding: '4px 8px', borderRadius: '12px', fontSize: '12px' }}>🚩 {b.reports || 0} reports</span>
                   </div>
                   {b.abuseFlags && b.abuseFlags.length > 0 && (
-                    <div style={{ marginTop: '8px', background: '#f8d7da', padding: '8px', borderRadius: '4px', fontSize: '13px', color: '#721c24' }}>
-                      <strong>⚠️ Flags:</strong> {b.abuseFlags.join(', ')}
-                    </div>
+                    <div style={{ marginTop: '8px', background: '#f8d7da', padding: '8px', borderRadius: '4px', fontSize: '13px', color: '#721c24' }}><strong>⚠️ Flags:</strong> {b.abuseFlags.join(', ')}</div>
                   )}
                   <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button onClick={() => updateStatus(b._id, 'published')} style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✅ Override & Approve</button>
@@ -431,9 +352,7 @@ export default function Admin() {
           <h3>✍️ Registered Authors</h3>
           <p style={{ color: '#666', marginBottom: '20px' }}>Authors self-register via <a href="/author-onboarding" style={{ color: '#667eea' }}>/author-onboarding</a></p>
           {authors.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '12px' }}>
-              <p style={{ color: '#666' }}>No authors registered yet.</p>
-            </div>
+            <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '12px' }}><p style={{ color: '#666' }}>No authors registered yet.</p></div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {authors.map((a: any) => (
