@@ -35,14 +35,46 @@ export default function AuthorDashboard() {
     );
   }
 
+  // ✅ SMART REDIRECT: If not an author yet, show friendly onboarding prompt
   if (!data?.isAuthor) {
     return (
-      <div style={{padding:'40px',textAlign:'center',maxWidth:'500px',margin:'50px auto',fontFamily:'Arial'}}>
-        <h2 style={{color:'#fd7e14'}}>✍️ Author Registration Required</h2>
-        <p style={{color:'#666',marginBottom:'20px'}}>You need to register as an author first</p>
-        <a href="/author-onboarding" style={{display:'inline-block',padding:'12px 30px',background:'#fd7e14',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>
-          Register as Author
-        </a>
+      <div style={{padding:'20px',maxWidth:'600px',margin:'50px auto',fontFamily:'Arial'}}>
+        <div style={{textAlign:'center',background:'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)',padding:'40px',borderRadius:'16px',border:'2px solid #ffc107'}}>
+          <div style={{fontSize:'64px',marginBottom:'20px'}}>✍️</div>
+          <h2 style={{color:'#856404',marginBottom:'15px'}}>Welcome to BookNaija Authors!</h2>
+          <p style={{color:'#666',fontSize:'16px',lineHeight:'1.6',marginBottom:'25px'}}>
+            We're excited to have you as part of our community! To access your Author Dashboard and start tracking your earnings, please complete your author profile first.
+          </p>
+          <div style={{background:'white',padding:'20px',borderRadius:'12px',marginBottom:'25px',textAlign:'left'}}>
+            <h4 style={{color:'#333',marginTop:0,marginBottom:'15px'}}>📋 What you'll get after completing your profile:</h4>
+            <ul style={{color:'#666',lineHeight:'1.8',paddingLeft:'20px',margin:0}}>
+              <li>✅ Access to your personal Author Dashboard</li>
+              <li>✅ Track your book reads and earnings in real-time</li>
+              <li>✅ View your monthly payment breakdown</li>
+              <li>✅ Join the exclusive Authors WhatsApp community</li>
+              <li>✅ Get paid directly to your bank account</li>
+            </ul>
+          </div>
+          <a 
+            href="/author-onboarding" 
+            style={{
+              display:'inline-block',
+              padding:'15px 40px',
+              background:'#fd7e14',
+              color:'white',
+              textDecoration:'none',
+              borderRadius:'8px',
+              fontWeight:'bold',
+              fontSize:'18px',
+              boxShadow:'0 4px 12px rgba(253,126,20,0.3)'
+            }}
+          >
+            🚀 Complete Your Author Profile
+          </a>
+          <p style={{color:'#999',fontSize:'13px',marginTop:'20px',marginBottom:0}}>
+            It only takes 2 minutes to set up! 💚
+          </p>
+        </div>
       </div>
     );
   }
@@ -54,7 +86,7 @@ export default function AuthorDashboard() {
         Welcome, {data.author?.name}!
       </p>
 
-      {/* ✅ NEW: Authors WhatsApp Community Section */}
+      {/* Authors WhatsApp Community Section */}
       <div style={{
         background:'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
         padding:'25px',
