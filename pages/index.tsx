@@ -4,10 +4,10 @@ import { useSession, signOut } from 'next-auth/react';
 export default function Home() {
   const { data: session } = useSession();
 
-  // ✅ Smart Checks for User Roles
-  const isAuthor = session?.user?.role === 'author';
-  const isReader = session?.user?.role === 'reader'; // ✅ Shows for ALL readers (subscribed or not!)
+  // ✅ Smart Checks for User Roles (Admin/Owner sees all for testing and management)
   const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
+  const isAuthor = session?.user?.role === 'author' || isAdmin;
+  const isReader = session?.user?.role === 'reader' || isAdmin; // ✅ Shows for ALL readers + Admin
 
   return (
     <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
@@ -25,19 +25,19 @@ export default function Home() {
         <a href="/books" style={{ display: 'block', padding: '15px', background: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
           📖 Browse Books
         </a>
-        
+
         <a href="/upload" style={{ display: 'block', padding: '15px', background: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
           📤 Upload Your Book
         </a>
 
-        {/* ✅ Smart Author Dashboard Button (Authors Only) */}
+        {/* ✅ Smart Author Dashboard Button (Authors + Admin) */}
         {isAuthor && (
           <a href="/author-dashboard" style={{ display: 'block', padding: '15px', background: '#fd7e14', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
             ✍️ My Author Dashboard
           </a>
         )}
 
-        {/* ✅ Smart Reader Progress Button (ALL Readers, to motivate subscription!) */}
+        {/* ✅ Smart Reader Progress Button (ALL Readers + Admin) */}
         {isReader && (
           <a href="/leaderboard" style={{ display: 'block', padding: '15px', background: '#17a2b8', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
             📊 My Reading Progress & Leaderboard
