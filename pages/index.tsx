@@ -4,6 +4,11 @@ import { useSession, signOut } from 'next-auth/react';
 export default function Home() {
   const { data: session } = useSession();
 
+  // ✅ Smart Checks for User Roles
+  const isAuthor = session?.user?.role === 'author';
+  const isReader = session?.user?.role === 'reader'; // ✅ Shows for ALL readers (subscribed or not!)
+  const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
+
   return (
     <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
       {/* Header */}
@@ -20,17 +25,33 @@ export default function Home() {
         <a href="/books" style={{ display: 'block', padding: '15px', background: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
           📖 Browse Books
         </a>
+        
         <a href="/upload" style={{ display: 'block', padding: '15px', background: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
           📤 Upload Your Book
         </a>
-        
-        {/* ✅ Admin Button restored for logged-in users */}
-        {session && (
+
+        {/* ✅ Smart Author Dashboard Button (Authors Only) */}
+        {isAuthor && (
+          <a href="/author-dashboard" style={{ display: 'block', padding: '15px', background: '#fd7e14', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
+            ✍️ My Author Dashboard
+          </a>
+        )}
+
+        {/* ✅ Smart Reader Progress Button (ALL Readers, to motivate subscription!) */}
+        {isReader && (
+          <a href="/leaderboard" style={{ display: 'block', padding: '15px', background: '#17a2b8', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
+            📊 My Reading Progress & Leaderboard
+          </a>
+        )}
+
+        {/* ✅ Admin Button (Only for Admin/Owner) */}
+        {isAdmin && (
           <a href="/admin" style={{ display: 'block', padding: '15px', background: '#6c757d', color: 'white', textDecoration: 'none', borderRadius: '8px', fontSize: '16px' }}>
             🔐 Admin Dashboard
           </a>
         )}
 
+        {/* Sign Out Button (For any logged-in user) */}
         {session && (
           <button
             onClick={() => signOut()}
