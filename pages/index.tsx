@@ -1,12 +1,12 @@
 'use client';
 import { useSession, signOut } from 'next-auth/react';
-import { useEffect, useState } from 'react'; // ✅ NEW: Added useEffect and useState
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const { data: session } = useSession();
-  const [userStatus, setUserStatus] = useState<any>(null); // ✅ NEW: State for DB check
+  const [userStatus, setUserStatus] = useState<any>(null);
 
-  // ✅ NEW: Check database for real-time author status to bypass session caching
+  // ✅ Check database for real-time author status
   useEffect(() => {
     if (session?.user?.email) {
       fetch(`/api/user/status?email=${encodeURIComponent(session.user.email)}`)
@@ -16,11 +16,14 @@ export default function Home() {
     }
   }, [session?.user?.email]);
 
-  // ✅ Smart Checks for User Roles (Admin/Owner sees all for testing and management)
+  // ✅ FOOLPROOF Smart Checks: Default to 'reader' if role is missing/blank
   const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
-  // ✅ UPDATED: isAuthor is now true if DB says so, OR role is author, OR isAdmin
-  const isAuthor = userStatus?.isAuthor || session?.user?.role === 'author' || isAdmin;
-  const isReader = session?.user?.role === 'reader' || isAdmin; // ✅ Shows for ALL readers + Admin
+  
+  // If role is blank/undefined, default to 'reader' so they can still see the leaderboard
+  const currentRole = session?.user?.role || 'reader'; 
+  
+  const isReader = currentRole === 'reader' || isAdmin;
+  const isAuthor = currentRole === 'author' || isAdmin || userStatus?.isAuthor;
 
   return (
     <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
@@ -43,14 +46,14 @@ export default function Home() {
           📤 Upload Your Book
         </a>
 
-        {/* ✅ Smart Author Dashboard Button (Authors + Admin) */}
+        {/* ✅ Smart Author Dashboard Button */}
         {isAuthor && (
           <a href="/author-dashboard" style={{ display: 'block', padding: '15px', background: '#fd7e14', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
             ✍️ My Author Dashboard
           </a>
         )}
 
-        {/* ✅ Smart Reader Progress Button (ALL Readers + Admin) */}
+        {/* ✅ Smart Reader Progress Button (Shows for ALL logged-in users by default) */}
         {isReader && (
           <a href="/leaderboard" style={{ display: 'block', padding: '15px', background: '#17a2b8', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
             📊 My Reading Progress & Leaderboard
