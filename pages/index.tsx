@@ -16,14 +16,13 @@ export default function Home() {
     }
   }, [session?.user?.email]);
 
-  // ✅ FOOLPROOF Smart Checks: Default to 'reader' if role is missing/blank
+  // ✅ FOOLPROOF Smart Checks: Show buttons to ALL logged-in users
   const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
+  const currentRole = session?.user?.role || 'reader';
   
-  // If role is blank/undefined, default to 'reader' so they can still see the leaderboard
-  const currentRole = session?.user?.role || 'reader'; 
-  
-  const isReader = currentRole === 'reader' || isAdmin;
-  const isAuthor = currentRole === 'author' || isAdmin || userStatus?.isAuthor;
+  // ✅ UPDATED: Both buttons now show for ALL logged-in users
+  const isReader = true; // ✅ Shows for everyone
+  const isAuthor = true; // ✅ Shows for everyone - dashboard will guide them if not registered
 
   return (
     <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
@@ -46,17 +45,17 @@ export default function Home() {
           📤 Upload Your Book
         </a>
 
-        {/* ✅ Smart Author Dashboard Button */}
+        {/* ✅ UPDATED: Author Dashboard Button (Shows for ALL logged-in users) */}
         {isAuthor && (
           <a href="/author-dashboard" style={{ display: 'block', padding: '15px', background: '#fd7e14', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
-            ✍️ My Author Dashboard
+            ✍️ Author Dashboard
           </a>
         )}
 
-        {/* ✅ Smart Reader Progress Button (Shows for ALL logged-in users by default) */}
+        {/* ✅ UPDATED: Reader Progress Button (Shows for ALL logged-in users) */}
         {isReader && (
           <a href="/leaderboard" style={{ display: 'block', padding: '15px', background: '#17a2b8', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
-            📊 My Reading Progress & Leaderboard
+            📊 Reading Progress & Leaderboard
           </a>
         )}
 
