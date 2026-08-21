@@ -1,12 +1,25 @@
 'use client';
 import { useSession, signOut } from 'next-auth/react';
+import { useEffect, useState } from 'react'; // ✅ NEW: Added useEffect and useState
 
 export default function Home() {
   const { data: session } = useSession();
+  const [userStatus, setUserStatus] = useState<any>(null); // ✅ NEW: State for DB check
+
+  // ✅ NEW: Check database for real-time author status to bypass session caching
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetch(`/api/user/status?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(data => setUserStatus(data))
+        .catch(() => {});
+    }
+  }, [session?.user?.email]);
 
   // ✅ Smart Checks for User Roles (Admin/Owner sees all for testing and management)
   const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
-  const isAuthor = session?.user?.role === 'author' || isAdmin;
+  // ✅ UPDATED: isAuthor is now true if DB says so, OR role is author, OR isAdmin
+  const isAuthor = userStatus?.isAuthor || session?.user?.role === 'author' || isAdmin;
   const isReader = session?.user?.role === 'reader' || isAdmin; // ✅ Shows for ALL readers + Admin
 
   return (
