@@ -16,9 +16,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ isAuthor: false });
     }
 
-    // Get author's books
-    const books = await db.collection('books').find({ 
-      authorEmail: email,
+    // ✅ FIX: Get author's books by matching email OR authorName (for past uploads)
+    const books = await db.collection('books').find({
+      $or: [
+        { authorEmail: email },
+        { authorName: author.fullName }
+      ],
       status: 'published'
     }).toArray();
 
@@ -27,8 +30,8 @@ export default async function handler(req, res) {
     // Get reads for author's books
     const reads = await db.collection('reads').aggregate([
       { $match: { bookId: { $in: bookIds }, completed: true } },
-      { $group: { 
-          _id: null, 
+      { $group: {
+          _id: null,
           totalReads: { $sum: 1 },
           totalTime: { $sum: '$timeSpent' },
           uniqueReaders: { $addToSet: '$userId' }
@@ -42,8 +45,8 @@ export default async function handler(req, res) {
     // Get platform-wide stats for calculation
     const allReads = await db.collection('reads').aggregate([
       { $match: { completed: true } },
-      { $group: { 
-          _id: null, 
+      { $group: {
+          _id: null,
           total: { $sum: 1 },
           totalTime: { $sum: '$timeSpent' },
           uniqueReaders: { $addToSet: '$userId' }
@@ -63,9 +66,9 @@ export default async function handler(req, res) {
     const estimatedRevenue = activeSubscriptions * 1000;
     const authorPool = Math.floor(estimatedRevenue * 0.5);
 
-    // Calculate author's share
-    const minutesShare = (totalTime / platformTotalTime) * 0.7;
-    const readersShare = (uniqueReaders / platformUniqueReaders) * 0.3;
+    // Calculate author's share (with safe division by zero checks)
+    const minutesShare = platformTotalTime > 0 ? (totalTime / platformTotalTime) * 0.7 : 0;
+    const readersShare = platformUniqueReaders > 0 ? (uniqueReaders / platformUniqueReaders) * 0.3 : 0;
     const totalShare = minutesShare + readersShare;
     const earnings = Math.floor(authorPool * totalShare);
 
