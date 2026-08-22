@@ -16,21 +16,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ isAuthor: false });
     }
 
-    // ✅ PERMANENT FIX: Smart, flexible name matching
-    // Cleans the name and creates a regex that matches the name even with extra words/spaces
+    // 2. Get author's books by matching email OR flexible name
     const cleanName = author.fullName.trim().replace(/\s+/g, ' ');
     const nameWords = cleanName.split(' ');
-    // Creates a regex like /Rose.*Itimi/i which matches "Rose Itimi", "Rose Itimi Juvwetee", etc.
     const flexibleNameRegex = new RegExp(nameWords.join('.*'), 'i');
 
-    // 2. Get author's books by matching email OR flexible name
     const books = await db.collection('books').find({
       $or: [
         { authorEmail: email },
         { authorName: flexibleNameRegex }
-      ],
-      status: 'published'
-    }).toArray();
+      ]
+    }).sort({ createdAt: -1 }).toArray(); // Sort newest first
 
     const bookIds = books.map(b => b._id);
 
@@ -73,11 +69,19 @@ export default async function handler(req, res) {
     const estimatedRevenue = activeSubscriptions * 1000;
     const authorPool = Math.floor(estimatedRevenue * 0.5);
 
-    // 6. Calculate author's share (with safe division by zero checks)
+    // 6. Calculate author's share
     const minutesShare = platformTotalTime > 0 ? (totalTime / platformTotalTime) * 0.7 : 0;
     const readersShare = platformUniqueReaders > 0 ? (uniqueReaders / platformUniqueReaders) * 0.3 : 0;
     const totalShare = minutesShare + readersShare;
     const earnings = Math.floor(authorPool * totalShare);
+
+    // 7. Format books list for frontend
+    const booksList = books.map(b => ({
+      title: b.title,
+      genre: b.genre || 'General',
+      status: b.status || 'pending',
+      createdAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB') : 'Recently'
+    }));
 
     res.status(200).json({
       isAuthor: true,
@@ -90,6 +94,7 @@ export default async function handler(req, res) {
       },
       stats: {
         books: books.length,
+        booksList: booksList, // ✅ NEW: Sends the actual list of books
         reads: totalReads,
         minutes: Math.floor(totalTime / 60),
         uniqueReaders
