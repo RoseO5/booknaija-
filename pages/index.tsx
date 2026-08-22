@@ -6,7 +6,7 @@ export default function Home() {
   const { data: session } = useSession();
   const [userStatus, setUserStatus] = useState<any>(null);
 
-  // ✅ Check database for real-time author status
+  // ✅ Check database for real-time status
   useEffect(() => {
     if (session?.user?.email) {
       fetch(`/api/user/status?email=${encodeURIComponent(session.user.email)}`)
@@ -16,13 +16,11 @@ export default function Home() {
     }
   }, [session?.user?.email]);
 
-  // ✅ FOOLPROOF Smart Checks: Show buttons to ALL logged-in users
+  // ✅ FOOLPROOF Smart Checks
   const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
-  const currentRole = session?.user?.role || 'reader';
-  
-  // ✅ UPDATED: Both buttons now show for ALL logged-in users
-  const isReader = true; // ✅ Shows for everyone
-  const isAuthor = true; // ✅ Shows for everyone - dashboard will guide them if not registered
+  const isAuthor = userStatus?.isAuthor || isAdmin;
+  const hasUploadedBook = userStatus?.hasUploadedBook || isAdmin;
+  const isReader = true; // Shows for everyone to motivate subscription
 
   return (
     <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
@@ -45,28 +43,41 @@ export default function Home() {
           📤 Upload Your Book
         </a>
 
-        {/* ✅ UPDATED: Author Dashboard Button (Shows for ALL logged-in users) */}
-        {isAuthor && (
-          <a href="/author-dashboard" style={{ display: 'block', padding: '15px', background: '#fd7e14', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
-            ✍️ Author Dashboard
+        {/* ✅ SMART AUTHOR BUTTON: Changes text if profile is incomplete */}
+        {(isAuthor || hasUploadedBook) && (
+          <a 
+            href="/author-dashboard" 
+            style={{ 
+              display: 'block', 
+              padding: '15px', 
+              background: isAuthor ? '#fd7e14' : '#ffc107', // Orange if ready, Yellow if needs attention
+              color: isAuthor ? 'white' : '#856404', 
+              textDecoration: 'none', 
+              borderRadius: '8px', 
+              fontWeight: 'bold', 
+              fontSize: '18px',
+              border: isAuthor ? 'none' : '2px solid #856404'
+            }}
+          >
+            {isAuthor ? '✍️ Author Dashboard' : '⚠️ Complete Author Profile'}
           </a>
         )}
 
-        {/* ✅ UPDATED: Reader Progress Button (Shows for ALL logged-in users) */}
+        {/* ✅ Smart Reader Progress Button */}
         {isReader && (
           <a href="/leaderboard" style={{ display: 'block', padding: '15px', background: '#17a2b8', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
             📊 Reading Progress & Leaderboard
           </a>
         )}
 
-        {/* ✅ Admin Button (Only for Admin/Owner) */}
+        {/* ✅ Admin Button */}
         {isAdmin && (
           <a href="/admin" style={{ display: 'block', padding: '15px', background: '#6c757d', color: 'white', textDecoration: 'none', borderRadius: '8px', fontSize: '16px' }}>
             🔐 Admin Dashboard
           </a>
         )}
 
-        {/* Sign Out Button (For any logged-in user) */}
+        {/* Sign Out Button */}
         {session && (
           <button
             onClick={() => signOut()}
@@ -114,7 +125,7 @@ export default function Home() {
         </p>
       </div>
 
-      {/* WhatsApp Communities (READERS ONLY FOR PUBLIC) */}
+      {/* WhatsApp Communities */}
       <div style={{ padding: '20px', background: '#e7f3ff', borderRadius: '12px', border: '1px solid #b8daff', marginBottom: '30px' }}>
         <h3 style={{ marginTop: 0, color: '#004085' }}>💬 Join Our Community</h3>
         <p style={{ color: '#004085', fontSize: '14px', marginBottom: '15px' }}>
@@ -132,7 +143,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Footer with Contact Info (EMAIL ONLY FOR SAFETY) */}
+      {/* Footer */}
       <div style={{ marginTop: '40px', fontSize: '14px', color: '#999' }}>
         <p>© 2026 BookNaija • Made with 💚 for Nigerian storytellers</p>
         <div style={{ marginTop: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
