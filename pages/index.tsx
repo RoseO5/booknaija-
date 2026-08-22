@@ -12,15 +12,23 @@ export default function Home() {
       fetch(`/api/user/status?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
         .then(data => setUserStatus(data))
-        .catch(() => {});
+        .catch(() => setUserStatus({ isAuthor: false, hasUploadedBook: false })); // Safe fallback
     }
   }, [session?.user?.email]);
 
-  // ✅ FOOLPROOF Smart Checks
   const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
-  const isAuthor = userStatus?.isAuthor || isAdmin;
-  const hasUploadedBook = userStatus?.hasUploadedBook || isAdmin;
-  const isReader = true; // Shows for everyone to motivate subscription
+  
+  // ✅ FOOLPROOF VISIBILITY: Show to ALL logged-in users. 
+  // The /author-dashboard page already has a smart redirect for unregistered users!
+  const showAuthorButton = !!session;
+  const showReaderButton = !!session;
+
+  // Dynamic styling: Yellow warning if they uploaded a book but haven't registered
+  const needsProfileCompletion = userStatus && !userStatus.isAuthor && userStatus.hasUploadedBook;
+  const authorButtonText = needsProfileCompletion ? '⚠️ Complete Author Profile' : '✍️ Author Dashboard';
+  const authorButtonBg = needsProfileCompletion ? '#ffc107' : '#fd7e14';
+  const authorButtonColor = needsProfileCompletion ? '#856404' : 'white';
+  const authorButtonBorder = needsProfileCompletion ? '2px solid #856404' : 'none';
 
   return (
     <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Arial', maxWidth: '600px', margin: '0 auto' }}>
@@ -43,28 +51,28 @@ export default function Home() {
           📤 Upload Your Book
         </a>
 
-        {/* ✅ SMART AUTHOR BUTTON: Changes text if profile is incomplete */}
-        {(isAuthor || hasUploadedBook) && (
+        {/* ✅ SMART AUTHOR BUTTON: Always visible to logged-in users, dynamically styled */}
+        {showAuthorButton && (
           <a 
             href="/author-dashboard" 
             style={{ 
               display: 'block', 
               padding: '15px', 
-              background: isAuthor ? '#fd7e14' : '#ffc107', // Orange if ready, Yellow if needs attention
-              color: isAuthor ? 'white' : '#856404', 
+              background: authorButtonBg,
+              color: authorButtonColor, 
               textDecoration: 'none', 
               borderRadius: '8px', 
               fontWeight: 'bold', 
               fontSize: '18px',
-              border: isAuthor ? 'none' : '2px solid #856404'
+              border: authorButtonBorder
             }}
           >
-            {isAuthor ? '✍️ Author Dashboard' : '⚠️ Complete Author Profile'}
+            {authorButtonText}
           </a>
         )}
 
-        {/* ✅ Smart Reader Progress Button */}
-        {isReader && (
+        {/* ✅ Smart Reader Progress Button: Always visible to logged-in users */}
+        {showReaderButton && (
           <a href="/leaderboard" style={{ display: 'block', padding: '15px', background: '#17a2b8', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '18px' }}>
             📊 Reading Progress & Leaderboard
           </a>
