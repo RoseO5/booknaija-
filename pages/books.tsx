@@ -19,7 +19,6 @@ export default function Books() {
   }, []);
 
   const handleReadBook = async (bookId: any, bookTitle: any) => {
-    // ✅ Require login to track reading progress
     if (status === 'unauthenticated') {
       alert('Please sign in to read and track your progress!');
       signIn('google');
@@ -38,7 +37,7 @@ export default function Books() {
           bookTitle,
           minutesRead: mins,
           pagesRead: pages,
-          userId: session?.user?.email || 'unknown' // ✅ Use email for accurate tracking
+          userId: session?.user?.email || 'unknown'
         })
       });
 
@@ -63,23 +62,38 @@ export default function Books() {
           <a href="/" style={{ color: '#667eea', textDecoration: 'none' }}>← Home</a>
         </div>
 
-        {/* ✅ EXCLUSIVE WHATSAPP BANNER FOR LOGGED-IN READERS */}
-        {status === 'authenticated' && session?.user?.email && (
-          <div style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center', marginBottom: '25px', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '10px', fontSize: '20px' }}>💬 Exclusive: BookNaija Readers Community</h3>
-            <p style={{ margin: '0 0 15px', fontSize: '14px', opacity: 0.95, lineHeight: '1.5' }}>
-              Connect with fellow readers, get book updates, and be part of our growing literary family!
-            </p>
-            <a 
-              href={`https://wa.me/2348142750728?text=${encodeURIComponent(`Hello Rose! I am a subscribed reader on BookNaija. My registered email is: ${session.user.email}. Please approve my request to join the Readers WhatsApp Group. Thank you!`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'inline-block', padding: '12px 24px', background: 'white', color: '#128C7E', textDecoration: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-            >
-              💚 Request to Join WhatsApp Group
-            </a>
-          </div>
-        )}
+        {/* ✅ BOLD WHATSAPP BANNER: ALWAYS VISIBLE, dynamically adapts to login status */}
+        <div style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', padding: '25px', borderRadius: '12px', color: 'white', textAlign: 'center', marginBottom: '25px', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '10px', fontSize: '22px', fontWeight: 'bold' }}>💬 Exclusive: BookNaija Readers Community</h3>
+          
+          {status === 'authenticated' && session?.user?.email ? (
+            <>
+              <p style={{ margin: '0 0 15px', fontSize: '15px', opacity: 0.95, lineHeight: '1.5' }}>
+                Welcome back! Connect with fellow readers, get book updates, and be part of our growing literary family.
+              </p>
+              <a 
+                href={`https://wa.me/2348142750728?text=${encodeURIComponent(`Hello Rose! I am a subscribed reader on BookNaija. My registered email is: ${session.user.email}. Please approve my request to join the Readers WhatsApp Group. Thank you!`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-block', padding: '14px 28px', background: 'white', color: '#128C7E', textDecoration: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+              >
+                💚 Request to Join WhatsApp Group
+              </a>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: '0 0 15px', fontSize: '15px', opacity: 0.95, lineHeight: '1.5' }}>
+                Connect with fellow readers, get book updates, and be part of our growing literary family!
+              </p>
+              <button 
+                onClick={() => signIn('google')}
+                style={{ display: 'inline-block', padding: '14px 28px', background: 'white', color: '#128C7E', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', cursor: 'pointer' }}
+              >
+                🔐 Sign In to Request Access
+              </button>
+            </>
+          )}
+        </div>
 
         <div style={{ background: '#d1ecf1', padding: '15px', borderRadius: '10px', marginBottom: '25px', borderLeft: '4px solid #17a2b8' }}>
           <strong>🎯 Prize Alert:</strong> Read 50 UNIQUE books in 6 months to enter our ₦5,000 prize draw (top 3 readers win)!
