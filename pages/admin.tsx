@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 
-const GENRES = ['Fiction', 'Christian Devotionals', 'Poetry', 'Self-Help', 'Non-Fiction'];
+const GENRES = ['Fiction', 'Christian Devotionals', 'Poetry', 'Self-Help', 'Non-Fiction', 'Educational'];
 
 export default function Admin() {
   const { data: session, status } = useSession();
@@ -265,10 +265,17 @@ export default function Admin() {
               {publishedBooks.map((b: any) => (
                 <div key={b._id} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
                   <strong>{b.title}</strong> by {b.authorName}<br/>
-                  <small style={{ color: '#666' }}>📅 {new Date(b.createdAt).toLocaleDateString()}</small>
-                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <small style={{ color: '#666' }}>📅 {new Date(b.createdAt).toLocaleDateString()} • 🏷️ {b.genre || 'No Genre'}</small>
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <select id={`manage-genre-${b._id}`} defaultValue={b.genre || 'Non-Fiction'} style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '13px' }}>
+                      {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <button onClick={() => {
+                      const genreSelect = document.getElementById(`manage-genre-${b._id}`) as HTMLSelectElement;
+                      updateStatus(b._id, 'published', genreSelect.value);
+                    }} style={{ padding: '6px 12px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🔄 Update Genre</button>
                     <a href={`/books/${b._id}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '4px', textDecoration: 'none' }}>👁️ View</a>
-                    <button onClick={() => deleteBook(b._id)} style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🗑️ Delete Permanently</button>
+                    <button onClick={() => deleteBook(b._id)} style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🗑️ Delete</button>
                   </div>
                 </div>
               ))}
