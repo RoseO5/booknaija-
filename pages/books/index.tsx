@@ -9,8 +9,7 @@ export default function Books() {
   const { data: session, status } = useSession();
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // ✅ NEW: Search and Filter States
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
 
@@ -28,14 +27,11 @@ export default function Books() {
   const isActive = sub && (sub.active === true || sub.status === 'active');
   const isPending = sub && sub.status === 'pending';
 
-  // ✅ NEW: Filter logic (Search by title/author AND filter by genre)
   const filteredBooks = books.filter((book: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.authorName.toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesGenre = selectedGenre === 'All' || book.genre === selectedGenre;
-    
     return matchesSearch && matchesGenre;
   });
 
@@ -46,7 +42,6 @@ export default function Books() {
         <p style={{ color: '#666', fontSize: '16px' }}>Discover Nigerian stories • Premium access ₦1000/month</p>
       </div>
 
-      {/* ✅ NEW: Search Bar */}
       <div style={{ marginBottom: '20px' }}>
         <input
           type="text"
@@ -57,7 +52,6 @@ export default function Books() {
         />
       </div>
 
-      {/* ✅ NEW: Genre Filter Buttons */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {GENRES.map((genre) => (
           <button
@@ -80,6 +74,39 @@ export default function Books() {
         ))}
       </div>
 
+      {/* ✅ BOLD WHATSAPP BANNER: ALWAYS VISIBLE, dynamically adapts to login status */}
+      <div style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center', marginBottom: '25px', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '10px', fontSize: '20px', fontWeight: 'bold' }}>💬 Exclusive: BookNaija Readers Community</h3>
+        
+        {status === 'authenticated' && session?.user?.email ? (
+          <>
+            <p style={{ margin: '0 0 15px', fontSize: '15px', opacity: 0.95, lineHeight: '1.5' }}>
+              Welcome back! Connect with fellow readers, get book updates, and be part of our growing literary family.
+            </p>
+            <a 
+              href={`https://wa.me/2348142750728?text=${encodeURIComponent(`Hello Rose! I am a subscribed reader on BookNaija. My registered email is: ${session.user.email}. Please approve my request to join the Readers WhatsApp Group. Thank you!`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-block', padding: '12px 24px', background: 'white', color: '#128C7E', textDecoration: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+            >
+              💚 Request to Join WhatsApp Group
+            </a>
+          </>
+        ) : (
+          <>
+            <p style={{ margin: '0 0 15px', fontSize: '15px', opacity: 0.95, lineHeight: '1.5' }}>
+              Connect with fellow readers, get book updates, and be part of our growing literary family!
+            </p>
+            <button 
+              onClick={() => signIn('google')}
+              style={{ display: 'inline-block', padding: '12px 24px', background: 'white', color: '#128C7E', border: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', cursor: 'pointer' }}
+            >
+              🔐 Sign In to Request Access
+            </button>
+          </>
+        )}
+      </div>
+
       {/* Reader Info (if logged in) */}
       {status === 'authenticated' && session?.user && (
         <div style={{ background: isActive ? '#d4edda' : (isPending ? '#fff3cd' : '#f8d7da'), padding: '15px', borderRadius: '12px', marginBottom: '25px', border: `1px solid ${isActive ? '#c3e6cb' : (isPending ? '#ffeaa7' : '#f5c6cb')}` }}>
@@ -87,7 +114,7 @@ export default function Books() {
             <div>
               <strong style={{ color: isActive ? '#155724' : (isPending ? '#856404' : '#721c24') }}>👋 Welcome, {session.user.name || 'Reader'}!</strong>
               <p style={{ margin: '5px 0 0', fontSize: '14px', color: '#666' }}>
-                {isActive ? '✅ Premium Active • Read unlimited books' : (isPending ? '⏳ Payment Pending • Awaiting activation' : '⭐ Subscribe to read all books • ₦1000/month')}
+                {isActive ? '✅ Premium Active • Read unlimited books' : (isPending ? ' ⏳ Payment Pending • Awaiting activation' : '⭐ Subscribe to read all books • ₦1000/month')}
               </p>
             </div>
             {!isActive && !isPending && (
@@ -127,7 +154,6 @@ export default function Books() {
               >
                 <img src={book.coverUrl || 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(book.title)} alt={book.title} style={{ width: '100%', height: '280px', objectFit: 'cover', borderBottom: '1px solid #eee' }} />
                 <div style={{ padding: '15px' }}>
-                  {/* ✅ NEW: Genre Badge */}
                   <span style={{ display: 'inline-block', padding: '4px 10px', background: '#e7f3ff', color: '#0056b3', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', marginBottom: '8px' }}>
                     {book.genre || 'Non-Fiction'}
                   </span>
