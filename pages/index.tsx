@@ -17,8 +17,8 @@ export default function Home() {
   }, [session?.user?.email]);
 
   const isAdmin = session?.user?.role === 'admin' || session?.user?.email === 'talktorose90@gmail.com';
-  
-  // ✅ FOOLPROOF VISIBILITY: Show to ALL logged-in users. 
+
+  // ✅ FOOLPROOF VISIBILITY: Show to ALL logged-in users.
   // The /author-dashboard page already has a smart redirect for unregistered users!
   const showAuthorButton = !!session;
   const showReaderButton = !!session;
@@ -53,16 +53,16 @@ export default function Home() {
 
         {/* ✅ SMART AUTHOR BUTTON: Always visible to logged-in users, dynamically styled */}
         {showAuthorButton && (
-          <a 
-            href="/author-dashboard" 
-            style={{ 
-              display: 'block', 
-              padding: '15px', 
+          <a
+            href="/author-dashboard"
+            style={{
+              display: 'block',
+              padding: '15px',
               background: authorButtonBg,
-              color: authorButtonColor, 
-              textDecoration: 'none', 
-              borderRadius: '8px', 
-              fontWeight: 'bold', 
+              color: authorButtonColor,
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
               fontSize: '18px',
               border: authorButtonBorder
             }}
@@ -131,24 +131,6 @@ export default function Home() {
         <p style={{ fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '15px', marginBottom: 0, fontStyle: 'italic' }}>
           *This is a structured loyalty reward for active reading and supporting Nigerian authors.
         </p>
-      </div>
-
-      {/* WhatsApp Communities */}
-      <div style={{ padding: '20px', background: '#e7f3ff', borderRadius: '12px', border: '1px solid #b8daff', marginBottom: '30px' }}>
-        <h3 style={{ marginTop: 0, color: '#004085' }}>💬 Join Our Community</h3>
-        <p style={{ color: '#004085', fontSize: '14px', marginBottom: '15px' }}>
-          Connect with fellow readers and get updates on new books!
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <a
-            href="https://chat.whatsapp.com/IDewvgS4R724cJ0YkTt69O?mode=gi_t"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'block', padding: '12px', background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center' }}
-          >
-            📚 Join Readers WhatsApp Group
-          </a>
-        </div>
       </div>
 
       {/* Footer */}

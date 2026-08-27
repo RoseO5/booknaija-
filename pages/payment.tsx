@@ -36,7 +36,6 @@ export default function Payment() {
     }
   };
 
-  // ✅ NEW: "I Have Paid" button - auto-verifies using stored reference
   const handleIPaid = async () => {
     if (!session?.user?.email) return;
     setChecking(true);
@@ -52,16 +51,9 @@ export default function Payment() {
       const data = await res.json();
       
       if (data.success) {
-        setResult({
-          success: true,
-          accessCard: data.accessCard,
-          expiresAt: data.expiresAt
-        });
+        setResult({ success: true, accessCard: data.accessCard, expiresAt: data.expiresAt });
       } else {
-        setResult({
-          success: false,
-          message: data.error || 'Payment not confirmed yet. Bank transfers can take 1-5 minutes. Please wait and click "I Have Paid" again.'
-        });
+        setResult({ success: false, message: data.error });
       }
     } catch (err) {
       setError('Network error. Please try again.');
@@ -99,89 +91,83 @@ export default function Payment() {
             </div>
           </div>
 
-          <a 
-            href="https://chat.whatsapp.com/IDewvgS4R724cJ0YkTt69O?mode=gi_t" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{ display: 'block', padding: '15px', background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}
-          >
-            💬 Join Readers WhatsApp Group
-          </a>
-
           <a href="/books" style={{ display: 'block', padding: '15px', background: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px' }}>
             📚 Start Reading Now
           </a>
         </div>
       )}
 
-      {/* ✅ WAITING STATE */}
+      {/* ✅ WAITING STATE (BANK TRANSFER DELAY) */}
       {result && !result.success && (
-        <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #ffc107', textAlign: 'center' }}>
+        <div style={{ background: '#fff3cd', padding: '25px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #ffc107', textAlign: 'center' }}>
           <div style={{fontSize:'40px',marginBottom:'10px'}}>⏳</div>
           <h3 style={{ color: '#856404', marginTop: 0 }}>Payment Processing</h3>
-          <p style={{ color: '#856404', fontSize: '14px', lineHeight: '1.6' }}>{result.message}</p>
+          <p style={{ color: '#856404', fontSize: '14px', lineHeight: '1.6', marginBottom: '15px' }}>
+            {result.message}
+          </p>
+          <div style={{ background: 'white', padding: '15px', borderRadius: '8px', fontSize: '13px', color: '#666', lineHeight: '1.5', textAlign: 'left' }}>
+            <strong>💡 Important Note for Bank Transfers:</strong><br/>
+            Sometimes, bank transfers take <strong>1 to 24 hours</strong> to reflect on Paystack's end. 
+            <br/><br/>
+            <strong>Please do not worry, you have NOT been scammed!</strong> Your money is safe. 
+            Simply close this page and click "I Have Paid" again later today or tomorrow. Your access will activate automatically the moment Paystack confirms it.
+          </div>
           <button
             onClick={handleIPaid}
-            style={{ marginTop: '15px', padding: '12px 30px', background: '#ffc107', color: '#856404', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ marginTop: '20px', padding: '12px 30px', background: '#ffc107', color: '#856404', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}
           >
-            🔄 Check Again
+            🔄 Check Payment Status Again
           </button>
         </div>
       )}
 
       {/* ✅ MAIN PAYMENT SECTION */}
       {!result?.success && (
-        <div style={{ background: '#f8f9fa', padding: '25px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #dee2e6' }}>
-          <h3 style={{ marginTop: 0, color: '#333', textAlign: 'center' }}>Step 1: Make Payment</h3>
-          <ul style={{ textAlign: 'left', color: '#666', lineHeight: '1.8', fontSize: '14px', marginBottom: '20px' }}>
-            <li>✅ Read all published books</li>
-            <li>✅ Support Nigerian authors</li>
-            <li>✅ Compete for the ₦5,000 reader prize</li>
-            <li>✅ Instant access after payment</li>
-          </ul>
-          <button
-            onClick={handlePayment}
-            disabled={loading}
-            style={{
-              width: '100%', padding: '15px',
-              background: loading ? '#999' : '#28a745',
-              color: 'white', border: 'none', borderRadius: '8px',
-              fontWeight: 'bold', fontSize: '18px',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? '⏳ Opening Paystack...' : '💳 Pay ₦1000 with Paystack'}
-          </button>
-          <p style={{ fontSize: '12px', color: '#999', marginTop: '15px', textAlign: 'center' }}>
-            🔒 Card, Bank Transfer, USSD accepted
-          </p>
-        </div>
-      )}
+        <>
+          <div style={{ background: '#f8f9fa', padding: '25px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #dee2e6' }}>
+            <h3 style={{ marginTop: 0, color: '#333', textAlign: 'center' }}>Step 1: Make Payment</h3>
+            <ul style={{ textAlign: 'left', color: '#666', lineHeight: '1.8', fontSize: '14px', marginBottom: '20px' }}>
+              <li>✅ Read all published books</li>
+              <li>✅ Support Nigerian authors</li>
+              <li>✅ Compete for the ₦5,000 reader prize</li>
+              <li>✅ Instant access after payment</li>
+            </ul>
+            <button
+              onClick={handlePayment}
+              disabled={loading}
+              style={{
+                width: '100%', padding: '15px',
+                background: loading ? '#999' : '#28a745',
+                color: 'white', border: 'none', borderRadius: '8px',
+                fontWeight: 'bold', fontSize: '18px',
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loading ? '⏳ Opening Paystack...' : '💳 Pay ₦1000 with Paystack'}
+            </button>
+          </div>
 
-      {/* ✅ "I HAVE PAID" BUTTON */}
-      {!result?.success && (
-        <div style={{ background: '#e7f3ff', padding: '25px', borderRadius: '12px', border: '1px solid #b8daff', textAlign: 'center' }}>
-          <h3 style={{ marginTop: 0, color: '#004085' }}>Step 2: Confirm Payment</h3>
-          <p style={{ fontSize: '14px', color: '#004085', marginBottom: '15px' }}>
-            After completing payment on Paystack, click the button below. We'll automatically verify and activate your account.
-          </p>
-          <button
-            onClick={handleIPaid}
-            disabled={checking}
-            style={{
-              width: '100%', padding: '15px',
-              background: checking ? '#999' : '#007bff',
-              color: 'white', border: 'none', borderRadius: '8px',
-              fontWeight: 'bold', fontSize: '16px',
-              cursor: checking ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {checking ? '⏳ Checking your payment...' : '✅ I Have Paid'}
-          </button>
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-            💡 Bank transfers may take 1-5 minutes to confirm.
-          </p>
-        </div>
+          {/* ✅ "I HAVE PAID" BUTTON */}
+          <div style={{ background: '#e7f3ff', padding: '25px', borderRadius: '12px', border: '1px solid #b8daff', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0, color: '#004085' }}>Step 2: Confirm Payment</h3>
+            <p style={{ fontSize: '14px', color: '#004085', marginBottom: '15px' }}>
+              After completing payment on Paystack, click the button below. We'll automatically verify and activate your account.
+            </p>
+            <button
+              onClick={handleIPaid}
+              disabled={checking}
+              style={{
+                width: '100%', padding: '15px',
+                background: checking ? '#999' : '#007bff',
+                color: 'white', border: 'none', borderRadius: '8px',
+                fontWeight: 'bold', fontSize: '16px',
+                cursor: checking ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {checking ? '⏳ Checking your payment...' : '✅ I Have Paid'}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
