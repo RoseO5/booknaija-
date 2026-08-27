@@ -10,6 +10,19 @@ export default async function handler(req, res) {
     const client = await clientPromise;
     const db = client.db('booknaija');
 
+    // ✅ AUTO-CLEANUP: Remove abandoned pending references older than 7 days
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    await db.collection('users').updateMany(
+      {
+        'subscription.pendingReference': { $exists: true },
+        'subscription.paidAt': { $lt: sevenDaysAgo },
+        'subscription.active': { $ne: true }
+      },
+      {
+        $unset: { 'subscription.pendingReference': '' }
+      }
+    );
+
     // 1. Get the stored reference from database
     const user = await db.collection('users').findOne({ email: email.toLowerCase() });
     
@@ -56,7 +69,7 @@ export default async function handler(req, res) {
           'subscription.expiresAt': new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000),
           role: 'reader'
         },
-        $unset: { 'subscription.pendingReference': '' } // Remove pending reference
+        $unset: { 'subscription.pendingReference': '' } // Remove pending reference immediately
       }
     );
 
