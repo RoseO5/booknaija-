@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import Link from 'next/link';
 
-const GENRES = ['All', 'Fiction', 'Christian Devotionals', 'Poetry', 'Self-Help', 'Non-Fiction'];
+const GENRES = ['All', 'Fiction', 'Christian Devotionals', 'Poetry', 'Self-Help', 'Non-Fiction', 'Educational'];
 
 export default function Books() {
   const { data: session, status } = useSession();
@@ -31,7 +31,7 @@ export default function Books() {
     const matchesSearch =
       book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.authorName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenre = selectedGenre === 'All' || book.genre === selectedGenre;
+    const matchesGenre = selectedGenre === 'All' || (book.genre || '').trim().toLowerCase() === selectedGenre.toLowerCase();
     return matchesSearch && matchesGenre;
   });
 
