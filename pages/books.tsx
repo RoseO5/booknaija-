@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession, signIn } from 'next-auth/react';
 
 export default function Books() {
+  const { data: session, status } = useSession();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState('000000000000000000000001'); // Mock user ID for testing
 
   useEffect(() => {
     fetch('/api/books/list')
@@ -18,6 +19,13 @@ export default function Books() {
   }, []);
 
   const handleReadBook = async (bookId: any, bookTitle: any) => {
+    // ✅ Require login to track reading progress
+    if (status === 'unauthenticated') {
+      alert('Please sign in to read and track your progress!');
+      signIn('google');
+      return;
+    }
+
     const mins = prompt(`How many minutes did you read "${bookTitle}"?`);
     const pages = prompt('How many pages did you read?');
 
@@ -25,17 +33,17 @@ export default function Books() {
       const res = await fetch('/api/reading/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          bookId, 
-          bookTitle, 
-          minutesRead: mins, 
+        body: JSON.stringify({
+          bookId,
+          bookTitle,
+          minutesRead: mins,
           pagesRead: pages,
-          userId
+          userId: session?.user?.email || 'unknown' // ✅ Use email for accurate tracking
         })
       });
 
       const result = await res.json();
-      
+
       if (result.success) {
         alert(result.message + '\n\n' + (result.prizeMessage || ''));
         window.location.reload();
@@ -54,6 +62,24 @@ export default function Books() {
           <h1 style={{ color: '#667eea', margin: 0 }}>📚 Available Books ({books.length})</h1>
           <a href="/" style={{ color: '#667eea', textDecoration: 'none' }}>← Home</a>
         </div>
+
+        {/* ✅ EXCLUSIVE WHATSAPP BANNER FOR LOGGED-IN READERS */}
+        {status === 'authenticated' && session?.user?.email && (
+          <div style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', padding: '20px', borderRadius: '12px', color: 'white', textAlign: 'center', marginBottom: '25px', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '10px', fontSize: '20px' }}>💬 Exclusive: BookNaija Readers Community</h3>
+            <p style={{ margin: '0 0 15px', fontSize: '14px', opacity: 0.95, lineHeight: '1.5' }}>
+              Connect with fellow readers, get book updates, and be part of our growing literary family!
+            </p>
+            <a 
+              href={`https://wa.me/2348142750728?text=${encodeURIComponent(`Hello Rose! I am a subscribed reader on BookNaija. My registered email is: ${session.user.email}. Please approve my request to join the Readers WhatsApp Group. Thank you!`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-block', padding: '12px 24px', background: 'white', color: '#128C7E', textDecoration: 'none', borderRadius: '30px', fontWeight: 'bold', fontSize: '15px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+            >
+              💚 Request to Join WhatsApp Group
+            </a>
+          </div>
+        )}
 
         <div style={{ background: '#d1ecf1', padding: '15px', borderRadius: '10px', marginBottom: '25px', borderLeft: '4px solid #17a2b8' }}>
           <strong>🎯 Prize Alert:</strong> Read 50 UNIQUE books in 6 months to enter our ₦5,000 prize draw (top 3 readers win)!
@@ -91,7 +117,7 @@ export default function Books() {
           <h2 style={{ color: '#007bff', margin: '0 0 15px 0' }}>🏆 Monthly Prize Draw</h2>
           <p style={{ margin: '0 0 20px 0', fontSize: '1.1rem' }}><strong>₦5,000</strong> for each of the top 3 readers every 6 months!</p>
           <p style={{ margin: '0 0 20px 0' }}><strong>Requirements:</strong> Read 50+ UNIQUE books within 6 months</p>
-          <a href="/dashboard" style={{ display: 'inline-block', background: '#007bff', color: 'white', padding: '12px 30px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold' }}>📊 View Dashboard</a>
+          <a href="/leaderboard" style={{ display: 'inline-block', background: '#007bff', color: 'white', padding: '12px 30px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold' }}>📊 View Dashboard</a>
         </div>
       </div>
     </div>
