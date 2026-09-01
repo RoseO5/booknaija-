@@ -19,13 +19,13 @@ export default async function handler(req, res) {
     });
 
     const serverTimeSpent = progress ? progress.totalTimeSpent : 0;
-    const isCompleted = serverTimeSpent >= 300; // Must have spent 5+ mins in the actual reader
+    const isCompleted = serverTimeSpent >= 900; // Must have spent 15+ mins in the actual reader
 
     if (!isCompleted) {
       const mins = Math.floor(serverTimeSpent / 60);
       const secs = serverTimeSpent % 60;
       return res.status(400).json({ 
-        error: `Please read the book in the secure reader for at least 5 minutes. Your tracked time is currently ${mins}m ${secs}s.` 
+        error: `Please read the book in the secure reader for at least 15 minutes to count towards the prize. Your tracked time is currently ${mins}m ${secs}s.` 
       });
     }
 
