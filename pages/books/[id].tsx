@@ -83,7 +83,7 @@ export default function BookDetail() {
         <div style={{ background: '#e7f3ff', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '15px', border: '1px solid #b8daff' }}>
           📖 <strong>How to earn prize points:</strong><br/>
           1. Click "Read Book Now" to open the secure reader.<br/>
-          2. Read for at least <strong>5 minutes</strong> (the reader tracks your time securely).<br/>
+          2. Read for at least <strong>15 minutes</strong> (the reader tracks your time securely).<br/>
           3. Return here and click "✅ Mark as Read" to claim your progress!
         </div>
 
