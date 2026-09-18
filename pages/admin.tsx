@@ -18,6 +18,7 @@ export default function Admin() {
   const [sendingEmails, setSendingEmails] = useState(false);
   const [emailResult, setEmailResult] = useState<any>(null);
   const [stats, setStats] = useState({ totalBooks: 0, pending: 0, flagged: 0, users: 0, reads: 0, authors: 0 });
+  const [coinLeaders, setCoinLeaders] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
@@ -54,6 +55,14 @@ export default function Admin() {
     if (activeTab === 'revenue') fetch('/api/revenue/calculate').then(r => r.json()).then(data => setRevenue(data)).catch(() => {});
     if (activeTab === 'readers') fetch('/api/competition/progress').then(r => r.json()).then(data => setReaderProgress(data)).catch(() => {});
     if (activeTab === 'authors') fetch('/api/authors/list').then(r => r.json()).then(data => setAuthors(data.authors || [])).catch(() => {});
+    if (activeTab === 'coins') {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      fetch(`/api/leaderboard/coins-admin?month=${currentMonth}`)
+        .then(r => r.json())
+        .then(data => setCoinLeaders(data.leaders || []))
+        .catch(() => {});
+    }
   }, [authenticated, activeTab]);
 
   const handleLogin = async (e: any) => {
@@ -147,6 +156,7 @@ export default function Admin() {
         <button onClick={() => setActiveTab('upload')} style={{ padding: '10px 15px', background: activeTab === 'upload' ? '#667eea' : '#f1f1f1', color: activeTab === 'upload' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📤 Upload</button>
         <button onClick={() => setActiveTab('approve')} style={{ padding: '10px 15px', background: activeTab === 'approve' ? '#17a2b8' : '#f1f1f1', color: activeTab === 'approve' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✅ Approve ({stats.pending})</button>
         <button onClick={() => setActiveTab('abuse')} style={{ padding: '10px 15px', background: activeTab === 'abuse' ? '#dc3545' : '#f1f1f1', color: activeTab === 'abuse' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>🛡️ Abuse ({stats.flagged})</button>
+        <button onClick={() => setActiveTab('coins')} style={{ padding: '10px 15px', background: activeTab === 'coins' ? '#e83e8c' : '#f1f1f1', color: activeTab === 'coins' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>🪙 Coin Leaders</button>
         <button onClick={() => setActiveTab('authors')} style={{ padding: '10px 15px', background: activeTab === 'authors' ? '#fd7e14' : '#f1f1f1', color: activeTab === 'authors' ? 'white' : '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✍️ Authors ({authors.length})</button>
       </div>
 
@@ -379,6 +389,36 @@ export default function Admin() {
                   </div>
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
                     📚 Books: {a.totalBooks || 0} • 👁️ Reads: {a.totalReads || 0} • 💵 Earnings: ₦{(a.earnings || 0).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      
+      {/* COIN LEADERS TAB (Admin Only - Shows Bank Details for Payouts) */}
+      {activeTab === 'coins' && (
+        <div>
+          <h3>🪙 Monthly Coin Leaders (Top Winners)</h3>
+          <p style={{ color: '#666', marginBottom: '20px' }}>Top readers this month. Use this secure data to process their airtime or bank transfer rewards.</p>
+          {coinLeaders.length === 0 ? <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No coin data yet for this month.</p> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {coinLeaders.map((leader: any, index: number) => (
+                <div key={leader.userId} style={{ background: index < 3 ? '#fff3cd' : 'white', padding: '15px', borderRadius: '8px', border: index < 3 ? '2px solid #ffc107' : '1px solid #ddd' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                      <strong style={{ fontSize: '18px', color: index === 0 ? '#d4af37' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#333' }}>
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`} {leader.userName}
+                      </strong>
+                      <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>🪙 Net Coins: <strong>{leader.netCoins}</strong> (Earned: {leader.totalCoinsEarned} | Spent: {leader.totalCoinsSpent})</div>
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '14px' }}>
+                      <div>📱 {leader.userPhone}</div>
+                      <div>🏦 {leader.userBank}</div>
+                      <div>🔢 {leader.userAccountNumber} ({leader.userAccountName})</div>
+                    </div>
                   </div>
                 </div>
               ))}
