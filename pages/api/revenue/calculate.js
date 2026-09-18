@@ -16,7 +16,8 @@ export default async function handler(req, res) {
       totalBooks,
       totalReads,
       totalMinutes,
-      authors
+      authors,
+      coinUnlockAgg
     ] = await Promise.all([
       db.collection('users').countDocuments({ role: 'reader' }),
       db.collection('users').countDocuments({ 'subscription.active': true }),
