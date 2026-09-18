@@ -1,10 +1,12 @@
 'use client';
 import { useSession, signIn } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 
 // ✅ NEW: Accept optional bookId and bookTitle for coin unlocks
 export default function PremiumGate({ children, bookId, bookTitle }: { children: React.ReactNode, bookId?: string, bookTitle?: string }) {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [checkingPending, setCheckingPending] = useState(false);
   
@@ -48,6 +50,34 @@ export default function PremiumGate({ children, bookId, bookTitle }: { children:
       .finally(() => setCheckingPending(false));
     }
   }, [status, session, isUnlocked]);
+  // ✅ NEW: Auto-verify Paystack coin purchase on redirect
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id && router.isReady) {
+      const { reference } = router.query;
+      if (reference && typeof reference === 'string' && reference.startsWith('COIN_')) {
+        setUnlocking(true);
+        fetch('/api/coins/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reference, userId: session.user.id })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setCurrentBalance(data.newBalance);
+            alert(`✅ Success! ${data.message}\nYour new balance is ${data.newBalance} coins.`);
+            // Clean the URL so it doesn't verify again on refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            alert('Payment verification failed: ' + data.error);
+          }
+        })
+        .catch(() => alert('Network error during verification'))
+        .finally(() => setUnlocking(false));
+      }
+    }
+  }, [status, session, router.isReady, router.query]);
+
 
   if (status === 'loading' || checkingPending) return <div style={{textAlign:'center',padding:'30px'}}>Loading...</div>;
 
