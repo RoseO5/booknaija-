@@ -161,7 +161,38 @@ export default function PremiumGate({ children, bookId, bookTitle }: { children:
             {unlockError && (
               <p style={{fontSize:'12px',color:'#dc3545',marginTop:'8px', fontWeight:'bold'}}>{unlockError}</p>
             )}
-            <p style={{fontSize:'11px',color:'#999',marginTop:'10px'}}>💡 Don't have coins? Read more books to earn them!</p>
+            
+            <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #667eea' }}>
+              <p style={{fontSize:'13px',color:'#333', fontWeight:'bold', marginBottom:'8px'}}>Need more coins?</p>
+              <button 
+                onClick={async () => {
+                  if (!session?.user?.id || !session?.user?.email) return;
+                  setUnlocking(true);
+                  try {
+                    const res = await fetch('/api/coins/buy', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: session.user.id, email: session.user.email })
+                    });
+                    const data = await res.json();
+                    if (data.checkoutUrl) {
+                      window.location.href = data.checkoutUrl;
+                    } else {
+                      alert('Error: ' + data.error);
+                      setUnlocking(false);
+                    }
+                  } catch (err) {
+                    alert('Network error');
+                    setUnlocking(false);
+                  }
+                }}
+                disabled={unlocking}
+                style={{padding:'10px 20px',background:unlocking?'#999':'#28a745',color:'white',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'bold', width: '100%'}}
+              >
+                {unlocking ? '⏳ Loading...' : '💳 Buy 100 Coins for ₦50'}
+              </button>
+            </div>
+            <p style={{fontSize:'11px',color:'#999',marginTop:'10px'}}>💡 Don't have coins? Read more books to earn them, or buy instantly!</p>
           </div>
         )}
 
