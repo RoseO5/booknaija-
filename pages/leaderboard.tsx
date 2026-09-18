@@ -153,7 +153,7 @@ export default function Leaderboard() {
           <li><strong>The Goal:</strong> Read 50 books within a 6-month cycle.</li>
           <li><strong>The Reward:</strong> A ₦5,000 Literary Grant for dedicated readers.</li>
           <li><strong>Schedule:</strong> Cycles end and rewards are distributed <strong>twice a year</strong> (June & December).</li>
-          <li><strong>Verification:</strong> Books must be read for at least 5 minutes to count.</li>
+          <li><strong>Verification:</strong> Books must be read for at least 15 minutes to count.</li>
         </ul>
         <p style={{fontSize:'12px', color:'#999', textAlign:'center', marginTop:'15px', marginBottom:0, fontStyle:'italic'}}>
           This is a merit-based literacy reward, not a lottery.
@@ -230,7 +230,7 @@ export default function Leaderboard() {
 
       <div style={{ textAlign: 'center', marginTop: '40px', padding: '20px', background: '#f8f9fa', borderRadius: '12px' }}>
         <p style={{ color: '#666', margin: '0 0 10px' }}>
-          📚 Reading is tracked automatically when you spend 5+ minutes on a book.
+          📚 Reading is tracked automatically when you spend 15+ minutes on a book.
         </p>
         <a href="/books" style={{ color: '#667eea', fontWeight: 'bold', textDecoration: 'none' }}>
           Browse Books →
