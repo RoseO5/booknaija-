@@ -69,11 +69,15 @@ export default async function handler(req, res) {
     const estimatedRevenue = activeSubscriptions * 1000;
     const authorPool = Math.floor(estimatedRevenue * 0.5);
 
-    // 6. Calculate author's share
+    // 6. Calculate author's share from reading
     const minutesShare = platformTotalTime > 0 ? (totalTime / platformTotalTime) * 0.7 : 0;
     const readersShare = platformUniqueReaders > 0 ? (uniqueReaders / platformUniqueReaders) * 0.3 : 0;
     const totalShare = minutesShare + readersShare;
-    const earnings = Math.floor(authorPool * totalShare);
+    const readingEarnings = Math.floor(authorPool * totalShare);
+    
+    // ✅ NEW: Add coin unlock earnings (₦10 per 24-hour unlock)
+    const coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
+    const totalEarnings = readingEarnings + coinUnlockEarnings;
 
     // 7. Format books list for frontend
     const booksList = books.map(b => ({
@@ -104,7 +108,11 @@ export default async function handler(req, res) {
         readersShare: (readersShare * 100).toFixed(2),
         totalShare: (totalShare * 100).toFixed(2)
       },
-      earnings
+      earnings: {
+        fromReading: readingEarnings,
+        fromCoinUnlocks: coinUnlockEarnings,
+        total: totalEarnings
+      }
     });
   } catch (error) {
     console.error('Author earnings error:', error);
