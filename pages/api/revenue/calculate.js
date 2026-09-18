@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       authors
     ] = await Promise.all([
       db.collection('users').countDocuments({ role: 'reader' }),
-      db.collection('users').countDocuments({ role: 'reader', 'subscription.active': true }),
+      db.collection('users').countDocuments({ 'subscription.active': true }),
       db.collection('books').countDocuments({ status: 'published' }),
       db.collection('reads').countDocuments({ completed: true }),
       db.collection('reads').aggregate([
