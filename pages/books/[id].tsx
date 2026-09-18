@@ -79,7 +79,7 @@ export default function BookDetail() {
       <h1 style={{ color: '#333', marginBottom: '10px', fontSize: '24px' }}>{book.title}</h1>
       <p style={{ color: '#666', marginBottom: '25px', fontSize: '16px' }}>By <strong>{book.authorName}</strong></p>
 
-      <PremiumGate>
+      <PremiumGate bookId={book._id} bookTitle={book.title}>
         <div style={{ background: '#e7f3ff', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '15px', border: '1px solid #b8daff' }}>
           📖 <strong>How to earn prize points:</strong><br/>
           1. Click "Read Book Now" to open the secure reader.<br/>
