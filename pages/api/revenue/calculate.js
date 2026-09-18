@@ -25,10 +25,18 @@ export default async function handler(req, res) {
       db.collection('reads').aggregate([
         { $group: { _id: null, total: { $sum: '$timeSpent' } } }
       ]).toArray(),
-      db.collection('authors').find({}).toArray()
+      db.collection('authors').find({}).toArray(),
+      // ✅ NEW: Calculate total coin unlock revenue across all authors
+      db.collection('authors').aggregate([
+        { $group: { _id: null, totalCoinUnlocks: { $sum: { $ifNull: ["$earnings.coinUnlocks", 0] } } } }
+      ]).toArray()
     ]);
 
     const totalMinutesValue = Math.floor((totalMinutes[0]?.total || 0) / 60);
+    
+    // ✅ NEW: Extract total coin unlock revenue
+    const totalCoinUnlockRevenue = coinUnlockAgg[0]?.totalCoinUnlocks || 0;
+    const platformProfitFromUnlocks = Math.floor(totalCoinUnlockRevenue * 0.8); // You keep 80% (₦40 of every ₦50)
 
     // Calculate revenue
     const estimatedRevenue = activeSubscriptions * 1000;
@@ -124,7 +132,10 @@ export default async function handler(req, res) {
         authorPool,
         platformRevenue,
         prizePool,
-        platformProfit
+        platformProfit,
+        // ✅ NEW: Coin unlock metrics
+        coinUnlockRevenue: totalCoinUnlockRevenue,
+        platformProfitFromUnlocks: platformProfitFromUnlocks
       },
       authorDistribution,
       prizeStatus: {
