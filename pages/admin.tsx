@@ -19,6 +19,7 @@ export default function Admin() {
   const [emailResult, setEmailResult] = useState<any>(null);
   const [stats, setStats] = useState({ totalBooks: 0, pending: 0, flagged: 0, users: 0, reads: 0, authors: 0 });
   const [coinLeaders, setCoinLeaders] = useState<any[]>([]);
+  const [coinAnalytics, setCoinAnalytics] = useState<any>(null);
   const [authors, setAuthors] = useState<any[]>([]);
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
@@ -61,6 +62,12 @@ export default function Admin() {
       fetch(`/api/leaderboard/coins-admin?month=${currentMonth}`)
         .then(r => r.json())
         .then(data => setCoinLeaders(data.leaders || []))
+        .catch(() => {});
+    }
+    if (activeTab === 'analytics') {
+      fetch('/api/revenue/coin-analytics')
+        .then(r => r.json())
+        .then(data => setCoinAnalytics(data))
         .catch(() => {});
     }
   }, [authenticated, activeTab]);
@@ -426,6 +433,49 @@ export default function Admin() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      
+      {/* COIN ANALYTICS SECTION */}
+      {activeTab === 'analytics' && coinAnalytics && (
+        <div style={{ marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '12px' }}>
+          <h3 style={{ marginBottom: '20px' }}>💰 Coin Economy Analytics</h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+            <div style={{ background: '#28a745', padding: '15px', borderRadius: '8px', color: 'white', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px' }}>Coin Purchases</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold' }}>₦{coinAnalytics.coinPurchases?.revenue?.toLocaleString() || 0}</div>
+              <div style={{ fontSize: '11px' }}>{coinAnalytics.coinPurchases?.count || 0} purchases</div>
+            </div>
+            
+            <div style={{ background: '#dc3545', padding: '15px', borderRadius: '8px', color: 'white', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px' }}>Tips Paid to Authors</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold' }}>₦{coinAnalytics.tips?.totalPaid?.toLocaleString() || 0}</div>
+              <div style={{ fontSize: '11px' }}>From coin purchases</div>
+            </div>
+            
+            <div style={{ background: '#fd7e14', padding: '15px', borderRadius: '8px', color: 'white', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px' }}>Book Unlock Revenue</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold' }}>₦{coinAnalytics.unlocks?.totalRevenue?.toLocaleString() || 0}</div>
+              <div style={{ fontSize: '11px' }}>Author payout: ₦{coinAnalytics.unlocks?.authorPayout?.toLocaleString() || 0}</div>
+            </div>
+            
+            <div style={{ background: '#6f42c1', padding: '15px', borderRadius: '8px', color: 'white', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px' }}>Your Net Profit</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold' }}>₦{coinAnalytics.summary?.yourNetProfit?.toLocaleString() || 0}</div>
+              <div style={{ fontSize: '11px' }}>After all payouts</div>
+            </div>
+          </div>
+          
+          <div style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
+            <h4 style={{ marginBottom: '10px' }}>📊 Breakdown</h4>
+            <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
+              <div>Total Revenue: <strong>₦{coinAnalytics.summary?.totalRevenue?.toLocaleString() || 0}</strong></div>
+              <div>Total Author Payouts: <strong style={{ color: '#dc3545' }}>₦{coinAnalytics.summary?.totalAuthorPayouts?.toLocaleString() || 0}</strong></div>
+              <div>Your Net Profit: <strong style={{ color: '#28a745' }}>₦{coinAnalytics.summary?.yourNetProfit?.toLocaleString() || 0}</strong></div>
+            </div>
+          </div>
         </div>
       )}
 
