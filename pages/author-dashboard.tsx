@@ -136,7 +136,7 @@ export default function AuthorDashboard() {
       <div style={{background:'linear-gradient(135deg, #e7f3ff 0%, #d0e8ff 100%)',padding:'20px',borderRadius:'12px',textAlign:'center',marginBottom:'30px',border:'2px solid #667eea'}}>
         <h3 style={{marginTop:0,color:'#667eea',marginBottom:'10px'}}>🎯 Boost Your Earnings with Trivia!</h3>
         <p style={{color:'#555',marginBottom:'15px',fontSize:'15px'}}>
-          Add trivia questions for your books. If your book is featured in the monthly tournament, you earn an extra <strong>₦10</strong>!
+          Add trivia questions for your books. If your book is featured in the monthly tournament, you earn a share of the <strong>10% author prize pool</strong>!
         </p>
         <a href="/author-trivia" style={{display:'inline-block',padding:'12px 30px',background:'#667eea',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold',fontSize:'16px',boxShadow:'0 4px 12px rgba(102,126,234,0.3)'}}>
           ✍️ Add Trivia Questions Now
