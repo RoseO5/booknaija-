@@ -11,6 +11,7 @@ export default function TriviaPage() {
   const [featuredBooks, setFeaturedBooks] = useState<any[]>([]);
   const [userCoins, setUserCoins] = useState<number | null>(null);
   const [isEntering, setIsEntering] = useState(false);
+  const [isBuying, setIsBuying] = useState(false);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -36,6 +37,31 @@ export default function TriviaPage() {
         .catch(() => {});
     }
   }, [status, session, currentMonth]);
+
+  const handleBuyCoins = async () => {
+    if (!session?.user?.id || !session?.user?.email) {
+      alert('❌ Please log in to buy coins.');
+      return;
+    }
+    setIsBuying(true);
+    try {
+      const res = await fetch('/api/coins/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: session.user.id, email: session.user.email })
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        alert('❌ Error: ' + (data.error || 'Failed to initialize payment'));
+        setIsBuying(false);
+      }
+    } catch (err) {
+      alert('❌ Network error. Please try again.');
+      setIsBuying(false);
+    }
+  };
 
   const handleEnter = async () => {
     if (!session?.user) return;
@@ -201,9 +227,26 @@ export default function TriviaPage() {
                   {isEntering ? '⏳ Entering...' : '🎯 Enter Tournament (100 Coins)'}
                 </button>
                 {userCoins !== null && userCoins < 100 && (
-                  <p style={{color:'#dc3545',marginTop:'10px',fontSize:'14px'}}>
-                    ❌ You need 100 coins. <a href="/books" style={{color:'#667eea'}}>Buy coins here</a>
-                  </p>
+                  <button
+                    onClick={handleBuyCoins}
+                    disabled={isBuying}
+                    style={{
+                      marginTop: '15px',
+                      padding: '12px 24px',
+                      background: isBuying ? '#ccc' : '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      fontSize: '15px',
+                      cursor: isBuying ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)',
+                      width: '100%',
+                      maxWidth: '300px'
+                    }}
+                  >
+                    {isBuying ? '⏳ Loading Paystack...' : '💳 Buy 100 Coins for ₦100 Now'}
+                  </button>
                 )}
               </div>
             )}
