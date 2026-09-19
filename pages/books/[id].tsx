@@ -170,42 +170,65 @@ export default function BookDetail() {
                   Your balance: <strong>{userCoins} coins</strong>
                 </p>
                 {userCoins < 100 && (
-                  <button 
-                    onClick={async () => {
-                      if (!session?.user?.id || !session?.user?.email) {
-                        alert('❌ Please log in to buy coins.');
-                        return;
-                      }
-                      try {
-                        const res = await fetch('/api/coins/buy', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ userId: session.user.id, email: session.user.email })
-                        });
-                        const data = await res.json();
-                        if (data.checkoutUrl) {
-                          window.location.href = data.checkoutUrl;
-                        } else {
-                          alert('❌ Error: ' + (data.error || 'Failed to initialize payment'));
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+                    <button 
+                      onClick={async () => {
+                        if (!session?.user?.id || !session?.user?.email) {
+                          alert('❌ Please log in to buy coins.');
+                          return;
                         }
-                      } catch (err) {
-                        alert('❌ Network error. Please try again.');
-                      }
-                    }}
-                    style={{ 
-                      padding: '8px 16px', 
-                      background: '#28a745', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '6px', 
-                      fontSize: '13px', 
-                      fontWeight: 'bold', 
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(40, 167, 69, 0.3)'
-                    }}
-                  >
-                    💳 Buy 100 Coins for ₦100
-                  </button>
+                        try {
+                          const res = await fetch('/api/coins/buy', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: session.user.id, email: session.user.email })
+                          });
+                          const data = await res.json();
+                          if (data.checkoutUrl) {
+                            window.location.href = data.checkoutUrl;
+                          } else {
+                            alert('❌ Error: ' + (data.error || 'Failed to initialize payment'));
+                          }
+                        } catch (err) {
+                          alert('❌ Network error. Please try again.');
+                        }
+                      }}
+                      style={{ 
+                        padding: '10px 16px', 
+                        background: '#28a745', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        fontSize: '14px', 
+                        fontWeight: 'bold', 
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(40, 167, 69, 0.3)',
+                        width: '100%',
+                        maxWidth: '250px'
+                      }}
+                    >
+                      💳 Buy 100 Coins for ₦100
+                    </button>
+                    <a 
+                      href="/trivia"
+                      style={{ 
+                        display: 'block',
+                        width: '100%',
+                        maxWidth: '250px',
+                        padding: '10px 16px', 
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                        color: 'white', 
+                        textDecoration: 'none', 
+                        borderRadius: '6px', 
+                        fontSize: '14px', 
+                        fontWeight: 'bold', 
+                        textAlign: 'center',
+                        boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)'
+                      }}
+                    >
+                      🏆 Enter Monthly Trivia
+                    </a>
+                  </div>
                 )}
               </div>
             )}
