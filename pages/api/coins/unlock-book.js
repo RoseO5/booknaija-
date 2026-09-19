@@ -51,6 +51,30 @@ export default async function handler(req, res) {
       }
     );
 
+    // ✅ NEW: Track author earnings from this unlock (₦10 = 20% of ₦50)
+    const book = await db.collection('books').findOne({ _id: new ObjectId(bookId) });
+    if (book && book.authorEmail) {
+      const authorEarnings = 10; // ₦10 to Author, ₦40 to Platform (24-hr unlock)
+      await db.collection('authors').updateOne(
+        { email: book.authorEmail },
+        {
+          $inc: { 
+            'earnings.coinUnlocks': authorEarnings,
+            'earnings.total': authorEarnings
+          },
+          $push: {
+            'earnings.transactions': {
+              type: 'coin_unlock',
+              amount: authorEarnings,
+              bookId: bookId,
+              bookTitle: bookTitle || book.title,
+              date: now
+            }
+          }
+        }
+      );
+    }
+
     // 4. Update leaderboard (spending reduces net coins)
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     await db.collection('coin_leaderboard').updateOne(
