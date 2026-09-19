@@ -20,6 +20,7 @@ export default function Admin() {
   const [stats, setStats] = useState({ totalBooks: 0, pending: 0, flagged: 0, users: 0, reads: 0, authors: 0 });
   const [coinLeaders, setCoinLeaders] = useState<any[]>([]);
   const [coinAnalytics, setCoinAnalytics] = useState<any>(null);
+  const [payoutDetails, setPayoutDetails] = useState<any>(null);
   const [authors, setAuthors] = useState<any[]>([]);
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
   const [flaggedBooks, setFlaggedBooks] = useState<any[]>([]);
@@ -68,6 +69,12 @@ export default function Admin() {
       fetch('/api/revenue/coin-analytics')
         .then(r => r.json())
         .then(data => setCoinAnalytics(data))
+        .catch(() => {});
+    }
+    if (activeTab === 'analytics') {
+      fetch('/api/revenue/payout-details')
+        .then(r => r.json())
+        .then(data => setPayoutDetails(data))
         .catch(() => {});
     }
   }, [authenticated, activeTab]);
@@ -475,6 +482,128 @@ export default function Admin() {
               <div>Total Author Payouts: <strong style={{ color: '#dc3545' }}>₦{coinAnalytics.summary?.totalAuthorPayouts?.toLocaleString() || 0}</strong></div>
               <div>Your Net Profit: <strong style={{ color: '#28a745' }}>₦{coinAnalytics.summary?.yourNetProfit?.toLocaleString() || 0}</strong></div>
             </div>
+          </div>
+        </div>
+      )}
+
+      
+      {/* PAYOUT DASHBOARD */}
+      {activeTab === 'analytics' && payoutDetails && (
+        <div style={{ marginTop: '30px', padding: '20px', background: '#fff3cd', borderRadius: '12px', border: '2px solid #ffc107' }}>
+          <h3 style={{ marginBottom: '20px', color: '#856404' }}>💸 PAYOUT DASHBOARD - Who to Pay This Month</h3>
+          
+          {/* AUTHORS WHO RECEIVED TIPS */}
+          <div style={{ marginBottom: '30px' }}>
+            <h4 style={{ color: '#856404', marginBottom: '15px' }}>🎁 Authors Who Received Tips</h4>
+            {payoutDetails.authorsTips?.length === 0 ? (
+              <p style={{ color: '#666' }}>No tips paid yet this month.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {payoutDetails.authorsTips.map((a: any, i: number) => (
+                  <div key={i} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '10px' }}>
+                      <div>
+                        <strong style={{ fontSize: '16px' }}>{a.name}</strong><br/>
+                        <small style={{ color: '#666' }}>📧 {a.email}</small>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>₦{a.tipAmount}</div>
+                        <small style={{ color: '#666' }}>Tip earnings</small>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '6px', fontSize: '13px' }}>
+                      <strong>💰 Pay to:</strong> {a.bank} • {a.accountNumber} ({a.accountName})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* AUTHORS WHO RECEIVED UNLOCK EARNINGS */}
+          <div style={{ marginBottom: '30px' }}>
+            <h4 style={{ color: '#856404', marginBottom: '15px' }}>🔓 Authors Who Received Book Unlock Earnings (₦10 each)</h4>
+            {payoutDetails.authorsUnlocks?.length === 0 ? (
+              <p style={{ color: '#666' }}>No unlock earnings yet this month.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {payoutDetails.authorsUnlocks.map((a: any, i: number) => (
+                  <div key={i} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '10px' }}>
+                      <div>
+                        <strong style={{ fontSize: '16px' }}>{a.name}</strong><br/>
+                        <small style={{ color: '#666' }}>📧 {a.email}</small>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>₦{a.unlockAmount}</div>
+                        <small style={{ color: '#666' }}>Unlock earnings</small>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '6px', fontSize: '13px' }}>
+                      <strong>💰 Pay to:</strong> {a.bank} • {a.accountNumber} ({a.accountName})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* TRIVIA FEATURED AUTHORS */}
+          <div style={{ marginBottom: '30px' }}>
+            <h4 style={{ color: '#856404', marginBottom: '15px' }}>✍️ Trivia Featured Authors (₦10 each)</h4>
+            {payoutDetails.triviaFeatured?.length === 0 ? (
+              <p style={{ color: '#666' }}>No trivia featured yet this month.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {payoutDetails.triviaFeatured.map((a: any, i: number) => (
+                  <div key={i} style={{ background: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '10px' }}>
+                      <div>
+                        <strong style={{ fontSize: '16px' }}>{a.name}</strong><br/>
+                        <small style={{ color: '#666' }}>📧 {a.email}</small>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>₦10</div>
+                        <small style={{ color: '#666' }}>Trivia feature</small>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '6px', fontSize: '13px' }}>
+                      <strong>💰 Pay to:</strong> {a.bank} • {a.accountNumber} ({a.accountName})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* TRIVIA WINNERS */}
+          <div>
+            <h4 style={{ color: '#856404', marginBottom: '15px' }}>🏆 Trivia Winners</h4>
+            {payoutDetails.triviaWinners?.length === 0 ? (
+              <p style={{ color: '#666' }}>No trivia winners yet this month.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {payoutDetails.triviaWinners.map((w: any, i: number) => (
+                  <div key={i} style={{ background: i === 0 ? '#fff3cd' : 'white', padding: '15px', borderRadius: '8px', border: i === 0 ? '2px solid #ffc107' : '1px solid #ddd' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '10px' }}>
+                      <div>
+                        <strong style={{ fontSize: '16px' }}>
+                          {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} {w.name}
+                        </strong><br/>
+                        <small style={{ color: '#666' }}>📧 {w.email} • 📱 {w.phone}</small>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>₦{w.prize}</div>
+                        <small style={{ color: '#666' }}>Prize</small>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '6px', fontSize: '13px' }}>
+                      <strong>💰 Pay to:</strong> {w.bank} • {w.accountNumber} ({w.accountName})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
