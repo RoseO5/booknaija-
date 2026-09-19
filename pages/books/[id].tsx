@@ -209,25 +209,42 @@ export default function BookDetail() {
                     >
                       💳 Buy 100 Coins for ₦100
                     </button>
-                    <a 
-                      href="/trivia"
-                      style={{ 
-                        display: 'block',
+                    {session?.user?.subscription?.active ? (
+                      <a 
+                        href="/trivia"
+                        style={{ 
+                          display: 'block',
+                          width: '100%',
+                          maxWidth: '250px',
+                          padding: '10px 16px', 
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                          color: 'white', 
+                          textDecoration: 'none', 
+                          borderRadius: '6px', 
+                          fontSize: '14px', 
+                          fontWeight: 'bold', 
+                          textAlign: 'center',
+                          boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)'
+                        }}
+                      >
+                        🏆 Enter Monthly Trivia
+                      </a>
+                    ) : (
+                      <div style={{ 
                         width: '100%',
                         maxWidth: '250px',
                         padding: '10px 16px', 
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-                        color: 'white', 
-                        textDecoration: 'none', 
+                        background: '#f8f9fa', 
+                        color: '#666', 
                         borderRadius: '6px', 
-                        fontSize: '14px', 
+                        fontSize: '13px', 
                         fontWeight: 'bold', 
                         textAlign: 'center',
-                        boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)'
-                      }}
-                    >
-                      🏆 Enter Monthly Trivia
-                    </a>
+                        border: '1px dashed #ccc'
+                      }}>
+                        🔒 Subscribe to enter Trivia
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

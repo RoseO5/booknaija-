@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 
 export default function TriviaPage() {
   const { data: session, status } = useSession();
+  const isSubscribed = session?.user?.subscription?.active;
   const router = useRouter();
   const [tournament, setTournament] = useState<any>(null);
   const [featuredBooks, setFeaturedBooks] = useState<any[]>([]);
@@ -45,6 +46,11 @@ export default function TriviaPage() {
       return;
     }
 
+    if (!isSubscribed) {
+      alert('🔒 Trivia is exclusively for subscribed readers. Please subscribe to enter!');
+      router.push('/books');
+      return;
+    }
     if ((userCoins || 0) < 100) {
       alert('❌ You need 100 coins to enter. Please buy coins first!');
       router.push('/books');
@@ -160,30 +166,46 @@ export default function TriviaPage() {
           </div>
         ) : (
           <div>
-            <p style={{color:'#666',marginBottom:'15px'}}>
-              Your balance: <strong style={{color:'#667eea'}}>{userCoins ?? 0} coins</strong>
-            </p>
-            <button
-              onClick={handleEnter}
-              disabled={isEntering || (userCoins !== null && userCoins < 100)}
-              style={{
-                padding:'15px 40px',
-                background: isEntering || (userCoins !== null && userCoins < 100) ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color:'white',
-                border:'none',
-                borderRadius:'12px',
-                fontWeight:'bold',
-                fontSize:'18px',
-                cursor: isEntering || (userCoins !== null && userCoins < 100) ? 'not-allowed' : 'pointer',
-                boxShadow:'0 4px 16px rgba(102,126,234,0.4)'
-              }}
-            >
-              {isEntering ? '⏳ Entering...' : '🎯 Enter Tournament (100 Coins)'}
-            </button>
-            {userCoins !== null && userCoins < 100 && (
-              <p style={{color:'#dc3545',marginTop:'10px',fontSize:'14px'}}>
-                ❌ You need 100 coins. <a href="/books" style={{color:'#667eea'}}>Buy coins here</a>
-              </p>
+            {!isSubscribed ? (
+              <div style={{background:'#fff3cd',padding:'20px',borderRadius:'12px',border:'2px solid #ffc107',textAlign:'center'}}>
+                <div style={{fontSize:'48px',marginBottom:'10px'}}>🔒</div>
+                <h3 style={{color:'#856404',marginBottom:'10px'}}>Premium Feature</h3>
+                <p style={{color:'#856404',marginBottom:'15px'}}>
+                  The Monthly Trivia Tournament is exclusively for subscribed readers. 
+                  Subscribe for ₦1000/month to enter, win cash prizes, and unlock all books!
+                </p>
+                <a href="/books" style={{display:'inline-block',padding:'12px 30px',background:'#28a745',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold',fontSize:'16px'}}>
+                  💳 Subscribe Now
+                </a>
+              </div>
+            ) : (
+              <div>
+                <p style={{color:'#666',marginBottom:'15px'}}>
+                  Your balance: <strong style={{color:'#667eea'}}>{userCoins ?? 0} coins</strong>
+                </p>
+                <button
+                  onClick={handleEnter}
+                  disabled={isEntering || (userCoins !== null && userCoins < 100)}
+                  style={{
+                    padding:'15px 40px',
+                    background: isEntering || (userCoins !== null && userCoins < 100) ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color:'white',
+                    border:'none',
+                    borderRadius:'12px',
+                    fontWeight:'bold',
+                    fontSize:'18px',
+                    cursor: isEntering || (userCoins !== null && userCoins < 100) ? 'not-allowed' : 'pointer',
+                    boxShadow:'0 4px 16px rgba(102,126,234,0.4)'
+                  }}
+                >
+                  {isEntering ? '⏳ Entering...' : '🎯 Enter Tournament (100 Coins)'}
+                </button>
+                {userCoins !== null && userCoins < 100 && (
+                  <p style={{color:'#dc3545',marginTop:'10px',fontSize:'14px'}}>
+                    ❌ You need 100 coins. <a href="/books" style={{color:'#667eea'}}>Buy coins here</a>
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}

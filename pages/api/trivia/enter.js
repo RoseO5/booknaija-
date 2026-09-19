@@ -13,9 +13,16 @@ export default async function handler(req, res) {
     const ENTRY_FEE_COINS = 100;
     const ENTRY_FEE_NAIRA = 100;
 
-    // Check user's coin balance
+    // Check user's subscription and coin balance
     const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // ✅ NEW: Strict check for active subscription
+    if (!user.subscription?.active) {
+      return res.status(403).json({ 
+        error: '🔒 Trivia is exclusively for subscribed readers. Please subscribe to enter!' 
+      });
+    }
 
     if ((user.coins || 0) < ENTRY_FEE_COINS) {
       return res.status(400).json({ 
