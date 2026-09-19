@@ -608,6 +608,19 @@ export default function Admin() {
         </div>
       )}
 
+      <div style={{ textAlign: 'center', marginTop: '30px', padding: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '12px' }}>
+        <h3 style={{ color: 'white', marginBottom: '10px' }}>🏆 Monthly Trivia Tournament</h3>
+        <p style={{ color: 'white', marginBottom: '15px', opacity: 0.95 }}>
+          View tournament status, players, rankings, and prize distribution
+        </p>
+        <button
+          onClick={() => window.location.href = '/admin/trivia'}
+          style={{ padding: '12px 30px', background: 'white', color: '#667eea', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}
+        >
+          📊 Open Trivia Dashboard
+        </button>
+      </div>
+
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
         <button onClick={() => setAuthenticated(false)} style={{ padding: '10px 30px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>🔓 Lock Dashboard</button>
       </div>
