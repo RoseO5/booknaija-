@@ -10,9 +10,9 @@ export default async function handler(req, res) {
     const client = await clientPromise;
     const db = client.db('booknaija');
 
+    // Get ALL books by this author (no status filter)
     const books = await db.collection('books').find({
-      authorEmail: email,
-      status: 'approved'
+      authorEmail: email
     }).project({
       _id: 1,
       title: 1,

@@ -103,7 +103,7 @@ export default function AuthorTrivia() {
       <div style={{ marginBottom: '30px' }}>
         <h3 style={{ marginBottom: '15px' }}>📚 Select a Book</h3>
         {books.length === 0 ? (
-          <p style={{ color: '#666' }}>You don't have any approved books yet.</p>
+          <p style={{ color: '#666' }}>You don't have any uploaded books yet. Upload a book first to add trivia questions!</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
             {books.map((book) => (
