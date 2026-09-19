@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
     const totalPurchases = coinPurchases[0]?.totalPurchases || 0;
     const totalCoinsBought = coinPurchases[0]?.totalCoinsBought || 0;
-    const totalPurchaseRevenue = totalPurchases * 100; // ₦100 per purchase
+    const totalPurchaseRevenue = totalPurchases * 100; // ₦100 per purchase (UPDATED)
 
     // 2. Total tips paid to authors
     const tipsPaid = await db.collection('authors').aggregate([

@@ -219,7 +219,7 @@ export default function PremiumGate({ children, bookId, bookTitle }: { children:
                 disabled={unlocking}
                 style={{padding:'10px 20px',background:unlocking?'#999':'#28a745',color:'white',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'bold', width: '100%'}}
               >
-                {unlocking ? '⏳ Loading...' : '💳 Buy 100 Coins for ₦50'}
+                {unlocking ? '⏳ Loading...' : '💳 Buy 100 Coins for ₦100'}
               </button>
             </div>
             <p style={{fontSize:'11px',color:'#999',marginTop:'10px'}}>💡 Don't have coins? Read more books to earn them, or buy instantly!</p>

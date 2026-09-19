@@ -9,7 +9,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'userId and email required' });
     }
 
-    const amountInKobo = 5000; // ₦50
+    const amountInKobo = 10000; // ₦100
     const reference = `COIN_${userId}_${Date.now()}`;
 
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
