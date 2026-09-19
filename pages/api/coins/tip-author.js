@@ -12,8 +12,13 @@ export default async function handler(req, res) {
 
     const client = await clientPromise;
     const db = client.db('booknaija');
-    const TIP_COST = 50; // 50 coins
-    const TIP_NAIRA_VALUE = 5; // Author gets ₦5
+    const { tipAmount } = req.body;
+    const validAmounts = [25, 50, 100];
+    if (!validAmounts.includes(tipAmount)) {
+      return res.status(400).json({ error: 'Invalid tip amount. Choose 25, 50, or 100 coins.' });
+    }
+    const TIP_COST = tipAmount;
+    const TIP_NAIRA_VALUE = tipAmount * 0.10; // Author gets ₦0.10 per coin
 
     // 1. Check user's current coin balance
     const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
@@ -21,7 +26,7 @@ export default async function handler(req, res) {
 
     if ((user.coins || 0) < TIP_COST) {
       return res.status(400).json({ 
-        error: `Insufficient coins. You need ${TIP_COST} coins to tip the author.`,
+        error: `Insufficient coins. You need ${TIP_COST} coins for this tip.`,
         currentBalance: user.coins || 0
       });
     }

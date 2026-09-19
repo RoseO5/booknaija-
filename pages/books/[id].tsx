@@ -74,9 +74,22 @@ export default function BookDetail() {
   );
 
 
-  const handleTipAuthor = async () => {
+  const [userCoins, setUserCoins] = useState<number | null>(null);
+
+  // Fetch user's coin balance
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch(`/api/coins/balance?userId=${session.user.id}`)
+        .then(r => r.json())
+        .then(data => setUserCoins(data.balance ?? 0))
+        .catch(() => {});
+    }
+  }, [session]);
+
+  const handleTipAuthor = async (amount: number) => {
     if (!session?.user?.id || !book?.authorEmail) return;
-    if (!confirm(`🎁 Tip the author 50 coins for "${book.title}"?
+    const nairaValue = (amount * 0.10).toFixed(2);
+    if (!confirm(`🎁 Tip the author ${amount} coins (₦${nairaValue}) for "${book.title}"?
 
 This shows your appreciation and supports Nigerian writers!`)) return;
     
@@ -89,11 +102,13 @@ This shows your appreciation and supports Nigerian writers!`)) return;
           userId: session.user.id,
           authorEmail: book.authorEmail,
           bookId: book._id,
-          bookTitle: book.title
+          bookTitle: book.title,
+          tipAmount: amount
         })
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        setUserCoins(data.newBalance);
         alert(`✅ Success! ${data.message}\nYour new coin balance is ${data.newBalance}.`);
       } else {
         alert('❌ ' + (data.error || 'Failed to tip author'));
@@ -142,30 +157,52 @@ This shows your appreciation and supports Nigerian writers!`)) return;
           </div>
         )}
 
-        {/* 🎁 TIP AUTHOR BUTTON */}
-        <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '2px dashed #ddd', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>
-            Loved this book? Support the author directly!
-          </p>
-          <button 
-            onClick={handleTipAuthor}
-            disabled={isTipping}
-            style={{ 
-              padding: '12px 24px', 
-              background: isTipping ? '#999' : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '8px', 
-              fontWeight: 'bold', 
-              fontSize: '16px', 
-              cursor: isTipping ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 12px rgba(245, 87, 108, 0.3)'
-            }}
-          >
-            {isTipping ? '⏳ Processing...' : '🎁 Tip Author 50 Coins'}
-          </button>
-          <p style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
-            💡 50 coins = ₦5 directly to the author's earnings.
+        {/* 🎁 TIP AUTHOR - FLEXIBLE AMOUNTS */}
+        <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '2px dashed #ddd' }}>
+          <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+            <p style={{ fontSize: '16px', color: '#333', fontWeight: 'bold', marginBottom: '5px' }}>
+              🎁 Loved this book? Support the author!
+            </p>
+            {userCoins !== null && (
+              <p style={{ fontSize: '13px', color: '#667eea' }}>
+                Your balance: <strong>{userCoins} coins</strong>
+              </p>
+            )}
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
+            {[
+              { amount: 25, label: 'Small Tip', naira: '₦2.50' },
+              { amount: 50, label: 'Medium Tip', naira: '₦5' },
+              { amount: 100, label: 'Big Tip', naira: '₦10' }
+            ].map((tip) => (
+              <button
+                key={tip.amount}
+                onClick={() => handleTipAuthor(tip.amount)}
+                disabled={isTipping || (userCoins !== null && userCoins < tip.amount)}
+                style={{
+                  padding: '12px 8px',
+                  background: isTipping || (userCoins !== null && userCoins < tip.amount) 
+                    ? '#ccc' 
+                    : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  cursor: isTipping || (userCoins !== null && userCoins < tip.amount) ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 2px 8px rgba(245, 87, 108, 0.2)'
+                }}
+              >
+                <div style={{ fontSize: '16px' }}>🪙 {tip.amount}</div>
+                <div style={{ fontSize: '11px', marginTop: '4px' }}>{tip.label}</div>
+                <div style={{ fontSize: '10px', opacity: 0.9 }}>{tip.naira}</div>
+              </button>
+            ))}
+          </div>
+          
+          <p style={{ fontSize: '11px', color: '#999', textAlign: 'center' }}>
+            💡 Tip goes directly to the author's earnings.
           </p>
         </div>
       </PremiumGate>
