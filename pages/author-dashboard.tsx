@@ -83,7 +83,7 @@ export default function AuthorDashboard() {
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'15px',marginBottom:'30px'}}>
         <div style={{background:'linear-gradient(135deg,#28a745 0%,#20c997 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center'}}>
           <div style={{fontSize:'14px',opacity:0.9}}>Your Earnings</div>
-          <div style={{fontSize:'32px',fontWeight:'bold'}}>₦{data.earnings?.toLocaleString() || 0}</div>
+          <div style={{fontSize:'32px',fontWeight:'bold'}}>₦{(typeof data.earnings === 'object' ? data.earnings.total : data.earnings || 0)?.toLocaleString() || 0}</div>
           <div style={{fontSize:'12px',opacity:0.8}}>This month</div>
         </div>
         <div style={{background:'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center'}}>
@@ -132,25 +132,44 @@ export default function AuthorDashboard() {
         )}
       </div>
 
-      {/* Earnings Breakdown */}
+      {/* TRIVIA CONTRIBUTION LINK */}
+      <div style={{background:'linear-gradient(135deg, #e7f3ff 0%, #d0e8ff 100%)',padding:'20px',borderRadius:'12px',textAlign:'center',marginBottom:'30px',border:'2px solid #667eea'}}>
+        <h3 style={{marginTop:0,color:'#667eea',marginBottom:'10px'}}>🎯 Boost Your Earnings with Trivia!</h3>
+        <p style={{color:'#555',marginBottom:'15px',fontSize:'15px'}}>
+          Add trivia questions for your books. If your book is featured in the monthly tournament, you earn an extra <strong>₦10</strong>!
+        </p>
+        <a href="/author-trivia" style={{display:'inline-block',padding:'12px 30px',background:'#667eea',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold',fontSize:'16px',boxShadow:'0 4px 12px rgba(102,126,234,0.3)'}}>
+          ✍️ Add Trivia Questions Now
+        </a>
+      </div>
+
+      {/* COMPREHENSIVE EARNINGS BREAKDOWN */}
       <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'20px'}}>
-        <h3 style={{marginTop:0,color:'#333'}}>💰 Earnings Breakdown</h3>
-        <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',marginBottom:'15px'}}>
-          <p style={{margin:'0 0 10px',color:'#666'}}><strong>Calculation Method:</strong></p>
-          <ul style={{margin:0,paddingLeft:'20px',color:'#666',lineHeight:'1.8'}}>
-            <li><strong>70%</strong> based on total minutes readers spent on your books</li>
-            <li><strong>30%</strong> based on unique readers who read your books</li>
-          </ul>
+        <h3 style={{marginTop:0,color:'#333',marginBottom:'20px'}}>💰 Detailed Earnings Breakdown</h3>
+        
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))',gap:'15px',marginBottom:'20px'}}>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #28a745'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>📖 From Reading</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#28a745'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromReading : 0)?.toLocaleString() || 0}</div>
+          </div>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #fd7e14'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🔓 24-Hr Unlocks</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#fd7e14'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromCoinUnlocks : 0)?.toLocaleString() || 0}</div>
+          </div>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #f5576c'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🎁 From Tips</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#f5576c'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTips : 0)?.toLocaleString() || 0}</div>
+          </div>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #6f42c1'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🏆 Trivia Features</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#6f42c1'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTrivia : 0)?.toLocaleString() || 0}</div>
+          </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'15px'}}>
-          <div>
-            <div style={{fontSize:'14px',color:'#666'}}>Minutes Share</div>
-            <div style={{fontSize:'24px',fontWeight:'bold',color:'#28a745'}}>{data.breakdown?.minutesShare || 0}%</div>
-          </div>
-          <div>
-            <div style={{fontSize:'14px',color:'#666'}}>Readers Share</div>
-            <div style={{fontSize:'24px',fontWeight:'bold',color:'#667eea'}}>{data.breakdown?.readersShare || 0}%</div>
-          </div>
+
+        <div style={{background:'#e7f3ff',padding:'15px',borderRadius:'8px',textAlign:'center'}}>
+          <p style={{margin:0,fontSize:'14px',color:'#004085'}}>
+            <strong>Calculation Method:</strong> 70% based on total reading minutes, 30% based on unique readers from the ₦1,000 subscription pool.
+          </p>
         </div>
       </div>
 

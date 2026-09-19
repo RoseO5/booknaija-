@@ -75,9 +75,12 @@ export default async function handler(req, res) {
     const totalShare = minutesShare + readersShare;
     const readingEarnings = Math.floor(authorPool * totalShare);
     
-    // ✅ NEW: Add coin unlock earnings (₦10 per 24-hour unlock)
-    const coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
-    const totalEarnings = readingEarnings + coinUnlockEarnings;
+    // ✅ NEW: Add all earning categories
+    const coinUnlockEarnings = author.earnings?.coinUnlocks || 0; // ₦10 per 24-hr unlock
+    const tipEarnings = author.earnings?.tips || 0;               // ₦0.10 per coin tipped
+    const triviaEarnings = author.earnings?.trivia || 0;          // ₦10 per trivia feature
+    
+    const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
 
     // 7. Format books list for frontend
     const booksList = books.map(b => ({
@@ -111,6 +114,8 @@ export default async function handler(req, res) {
       earnings: {
         fromReading: readingEarnings,
         fromCoinUnlocks: coinUnlockEarnings,
+        fromTips: tipEarnings,
+        fromTrivia: triviaEarnings,
         total: totalEarnings
       }
     });
