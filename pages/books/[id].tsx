@@ -13,6 +13,7 @@ export default function BookDetail() {
   const [markedRead, setMarkedRead] = useState(false);
   const [readResult, setReadResult] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isTipping, setIsTipping] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -72,6 +73,38 @@ export default function BookDetail() {
     </div>
   );
 
+
+  const handleTipAuthor = async () => {
+    if (!session?.user?.id || !book?.authorEmail) return;
+    if (!confirm(`🎁 Tip the author 50 coins for "${book.title}"?
+
+This shows your appreciation and supports Nigerian writers!`)) return;
+    
+    setIsTipping(true);
+    try {
+      const res = await fetch('/api/coins/tip-author', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: session.user.id,
+          authorEmail: book.authorEmail,
+          bookId: book._id,
+          bookTitle: book.title
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`✅ Success! ${data.message}\nYour new coin balance is ${data.newBalance}.`);
+      } else {
+        alert('❌ ' + (data.error || 'Failed to tip author'));
+      }
+    } catch (err) {
+      alert('❌ Network error. Please try again.');
+    } finally {
+      setIsTipping(false);
+    }
+  };
+
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: 'Arial' }}>
       <button onClick={() => router.push('/books')} style={{ marginBottom: '20px', padding: '8px 16px', background: '#f1f1f1', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>← Back to Books</button>
@@ -108,6 +141,33 @@ export default function BookDetail() {
             <p style={{ margin: '5px 0 0', fontSize: '13px', opacity: 0.8 }}>Verified reading time: {Math.floor(readResult.trackedTime / 60)}m {readResult.trackedTime % 60}s</p>
           </div>
         )}
+
+        {/* 🎁 TIP AUTHOR BUTTON */}
+        <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '2px dashed #ddd', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>
+            Loved this book? Support the author directly!
+          </p>
+          <button 
+            onClick={handleTipAuthor}
+            disabled={isTipping}
+            style={{ 
+              padding: '12px 24px', 
+              background: isTipping ? '#999' : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '8px', 
+              fontWeight: 'bold', 
+              fontSize: '16px', 
+              cursor: isTipping ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 12px rgba(245, 87, 108, 0.3)'
+            }}
+          >
+            {isTipping ? '⏳ Processing...' : '🎁 Tip Author 50 Coins'}
+          </button>
+          <p style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+            💡 50 coins = ₦5 directly to the author's earnings.
+          </p>
+        </div>
       </PremiumGate>
     </div>
   );
