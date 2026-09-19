@@ -165,9 +165,49 @@ export default function BookDetail() {
               🎁 Loved this book? Support the author!
             </p>
             {userCoins !== null && (
-              <p style={{ fontSize: '13px', color: '#667eea' }}>
-                Your balance: <strong>{userCoins} coins</strong>
-              </p>
+              <div>
+                <p style={{ fontSize: '13px', color: '#667eea', marginBottom: '8px' }}>
+                  Your balance: <strong>{userCoins} coins</strong>
+                </p>
+                {userCoins < 100 && (
+                  <button 
+                    onClick={async () => {
+                      if (!session?.user?.id || !session?.user?.email) {
+                        alert('❌ Please log in to buy coins.');
+                        return;
+                      }
+                      try {
+                        const res = await fetch('/api/coins/buy', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: session.user.id, email: session.user.email })
+                        });
+                        const data = await res.json();
+                        if (data.checkoutUrl) {
+                          window.location.href = data.checkoutUrl;
+                        } else {
+                          alert('❌ Error: ' + (data.error || 'Failed to initialize payment'));
+                        }
+                      } catch (err) {
+                        alert('❌ Network error. Please try again.');
+                      }
+                    }}
+                    style={{ 
+                      padding: '8px 16px', 
+                      background: '#28a745', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '6px', 
+                      fontSize: '13px', 
+                      fontWeight: 'bold', 
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(40, 167, 69, 0.3)'
+                    }}
+                  >
+                    💳 Buy 100 Coins for ₦100
+                  </button>
+                )}
+              </div>
             )}
           </div>
           
