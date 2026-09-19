@@ -7,14 +7,16 @@ import PremiumGate from '../../components/PremiumGate';
 export default function BookDetail() {
   const router = useRouter();
   const { id } = router.query;
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const [book, setBook] = useState<any>(null);
   const [markedRead, setMarkedRead] = useState(false);
   const [readResult, setReadResult] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isTipping, setIsTipping] = useState(false);
+  const [userCoins, setUserCoins] = useState<number | null>(null);
 
+  // Fetch book details
   useEffect(() => {
     if (!id) return;
     fetch(`/api/books/${id}`)
@@ -25,6 +27,16 @@ export default function BookDetail() {
       })
       .catch(() => setBook({ error: 'Failed to load book' }));
   }, [id]);
+
+  // Fetch user's coin balance
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      fetch(`/api/coins/balance?userId=${session.user.id}`)
+        .then(r => r.json())
+        .then(data => setUserCoins(data.balance ?? 0))
+        .catch(() => {});
+    }
+  }, [status, session]);
 
   const handleReadBook = () => {
     if (!session?.user?.email || !book?._id) {
@@ -37,61 +49,40 @@ export default function BookDetail() {
   const handleMarkAsRead = async () => {
     if (!session?.user?.id || !book?._id) return;
     setIsProcessing(true);
-    
+
     try {
       const res = await fetch('/api/books/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId: session.user.id, 
-          bookId: book._id 
-          // We NO LONGER send timeSpent. The server checks the real tracked time!
+        body: JSON.stringify({
+          userId: session.user.id,
+          bookId: book._id
         })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.success) {
         setReadResult(data);
         setMarkedRead(true);
+        // Refresh coin balance in case reading earned coins
+        fetch(`/api/coins/balance?userId=${session.user.id}`)
+          .then(r => r.json())
+          .then(d => setUserCoins(d.balance ?? 0));
       } else {
-        // Show the friendly server message if they haven't read enough
         alert('⏳ ' + (data.error || 'Failed to mark as read'));
       }
-    } catch (err: any) { 
-      alert('❌ Network Error: ' + err.message); 
+    } catch (err: any) {
+      alert('❌ Network Error: ' + err.message);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (!book) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading book...</div>;
-  if ((book as any).error) return (
-    <div style={{ padding: '40px', textAlign: 'center' }}>
-      <h2 style={{ color: '#dc3545' }}>❌ {(book as any).error}</h2>
-      <button onClick={() => router.push('/books')} style={{ marginTop: '20px', padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>← Back</button>
-    </div>
-  );
-
-
-  const [userCoins, setUserCoins] = useState<number | null>(null);
-
-  // Fetch user's coin balance
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetch(`/api/coins/balance?userId=${session.user.id}`)
-        .then(r => r.json())
-        .then(data => setUserCoins(data.balance ?? 0))
-        .catch(() => {});
-    }
-  }, [session]);
-
   const handleTipAuthor = async (amount: number) => {
     if (!session?.user?.id || !book?.authorEmail) return;
     const nairaValue = (amount * 0.10).toFixed(2);
-    if (!confirm(`🎁 Tip the author ${amount} coins (₦${nairaValue}) for "${book.title}"?
-
-This shows your appreciation and supports Nigerian writers!`)) return;
+    if (!confirm(`🎁 Tip the author ${amount} coins (₦${nairaValue}) for "${book.title}"?\n\nThis shows your appreciation and supports Nigerian writers!`)) return;
     
     setIsTipping(true);
     try {
@@ -120,10 +111,20 @@ This shows your appreciation and supports Nigerian writers!`)) return;
     }
   };
 
+  if (!book) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading book...</div>;
+  if ((book as any).error) return (
+    <div style={{ padding: '40px', textAlign: 'center' }}>
+      <h2 style={{ color: '#dc3545' }}>❌ {(book as any).error}</h2>
+      <button onClick={() => router.push('/books')} style={{ marginTop: '20px', padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>← Back</button>
+    </div>
+  );
+
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: 'Arial' }}>
       <button onClick={() => router.push('/books')} style={{ marginBottom: '20px', padding: '8px 16px', background: '#f1f1f1', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>← Back to Books</button>
+      
       <img src={book.coverUrl || 'https://via.placeholder.com/400x600/667eea/ffffff?text=' + encodeURIComponent(book.title)} alt={book.title} style={{ width: '100%', maxWidth: '300px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+      
       <h1 style={{ color: '#333', marginBottom: '10px', fontSize: '24px' }}>{book.title}</h1>
       <p style={{ color: '#666', marginBottom: '25px', fontSize: '16px' }}>By <strong>{book.authorName}</strong></p>
 
@@ -140,8 +141,8 @@ This shows your appreciation and supports Nigerian writers!`)) return;
         </button>
 
         {!markedRead && (
-          <button 
-            onClick={handleMarkAsRead} 
+          <button
+            onClick={handleMarkAsRead}
             disabled={isProcessing}
             style={{ padding: '15px 30px', background: isProcessing ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isProcessing ? 'not-allowed' : 'pointer', fontSize: '16px' }}
           >
@@ -173,8 +174,8 @@ This shows your appreciation and supports Nigerian writers!`)) return;
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
             {[
               { amount: 25, label: 'Small Tip', naira: '₦2.50' },
-              { amount: 50, label: 'Medium Tip', naira: '₦5' },
-              { amount: 100, label: 'Big Tip', naira: '₦10' }
+              { amount: 50, label: 'Medium Tip', naira: '₦5.00' },
+              { amount: 100, label: 'Big Tip', naira: '₦10.00' }
             ].map((tip) => (
               <button
                 key={tip.amount}
