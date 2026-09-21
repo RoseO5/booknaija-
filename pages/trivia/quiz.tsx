@@ -10,13 +10,15 @@ export default function TriviaQuiz() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<{[key: string]: string}>({});
   const [startTime, setStartTime] = useState<number>(0);
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(1200); // 20 minutes in seconds
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const timerRef = useRef<any>(null);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const TOTAL_TIME = 1200; // 20 minutes
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -56,15 +58,59 @@ export default function TriviaQuiz() {
     }
   }, [status, session, currentMonth, router]);
 
-  // Timer
+  // COUNTDOWN TIMER
   useEffect(() => {
-    if (startTime > 0 && !result) {
-      const interval = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    if (startTime > 0 && !result && timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            // Time's up! Auto-submit
+            clearInterval(timerRef.current);
+            handleAutoSubmit();
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
-      return () => clearInterval(interval);
+
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
     }
   }, [startTime, result]);
+
+  const handleAutoSubmit = async () => {
+    if (!session?.user?.id || questions.length === 0) return;
+    
+    setIsSubmitting(true);
+    try {
+      const answersArray = questions.map(q => ({
+        questionId: q.id,
+        answer: answers[q.id] || ''
+      }));
+
+      const res = await fetch('/api/trivia/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: session.user.id,
+          answers: answersArray,
+          completionTime: TOTAL_TIME // They used all their time
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setResult(data);
+      } else {
+        alert('❌ ' + (data.error || 'Failed to submit'));
+      }
+    } catch (err) {
+      alert('❌ Network error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleAnswerChange = (questionId: string, answer: string) => {
     setAnswers({ ...answers, [questionId]: answer });
@@ -97,8 +143,10 @@ export default function TriviaQuiz() {
     }
 
     setIsSubmitting(true);
+    if (timerRef.current) clearInterval(timerRef.current);
+    
     try {
-      const completionTime = Math.floor((Date.now() - startTime) / 1000);
+      const completionTime = TOTAL_TIME - timeLeft;
       const answersArray = questions.map(q => ({
         questionId: q.id,
         answer: answers[q.id] || ''
@@ -132,6 +180,9 @@ export default function TriviaQuiz() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const isTimeLow = timeLeft <= 120; // 2 minutes or less
+  const isTimeCritical = timeLeft <= 60; // 1 minute or less
 
   if (status === 'loading' || loading) {
     return <div style={{padding:'40px',textAlign:'center'}}>Loading quiz...</div>;
@@ -183,15 +234,36 @@ export default function TriviaQuiz() {
 
   return (
     <div style={{padding:'20px',maxWidth:'700px',margin:'0 auto',fontFamily:'Arial'}}>
-      {/* Header */}
+      {/* Header with Timer */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px',flexWrap:'wrap',gap:'10px'}}>
         <button onClick={() => router.push('/trivia')} style={{padding:'8px 16px',background:'#f1f1f1',border:'none',borderRadius:'6px',cursor:'pointer',fontWeight:'bold'}}>
           ← Exit
         </button>
-        <div style={{fontSize:'18px',fontWeight:'bold',color:'#667eea'}}>
-          ⏱️ {formatTime(elapsedTime)}
+        <div style={{
+          fontSize:'24px',
+          fontWeight:'bold',
+          color: isTimeCritical ? '#dc3545' : isTimeLow ? '#fd7e14' : '#667eea',
+          background: isTimeCritical ? '#f8d7da' : isTimeLow ? '#fff3cd' : '#e7f3ff',
+          padding:'8px 20px',
+          borderRadius:'8px',
+          border: isTimeCritical ? '2px solid #dc3545' : isTimeLow ? '2px solid #fd7e14' : '2px solid #667eea',
+          animation: isTimeCritical ? 'pulse 1s infinite' : 'none'
+        }}>
+          ⏱️ {formatTime(timeLeft)}
         </div>
       </div>
+
+      {/* Time Warning */}
+      {isTimeLow && !isTimeCritical && (
+        <div style={{background:'#fff3cd',padding:'12px',borderRadius:'8px',marginBottom:'15px',textAlign:'center',border:'2px solid #ffc107'}}>
+          <strong style={{color:'#856404'}}>⚠️ Only {Math.floor(timeLeft / 60)} minutes left!</strong>
+        </div>
+      )}
+      {isTimeCritical && (
+        <div style={{background:'#f8d7da',padding:'12px',borderRadius:'8px',marginBottom:'15px',textAlign:'center',border:'2px solid #dc3545'}}>
+          <strong style={{color:'#721c24'}}>🚨 FINAL MINUTE! Submit your answers now!</strong>
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div style={{marginBottom:'20px'}}>
@@ -284,6 +356,14 @@ export default function TriviaQuiz() {
           </button>
         )}
       </div>
+
+      {/* CSS Animation for Critical Time */}
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+      `}</style>
     </div>
   );
 }
