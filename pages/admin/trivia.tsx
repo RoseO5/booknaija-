@@ -103,6 +103,7 @@ export default function AdminTriviaDashboard() {
   }
 
   const tournament = tournamentData?.tournament;
+  const featuredBooks = tournamentData?.featuredBooks || [];
   const isTournamentActive = tournament?.status === 'active';
 
   return (
@@ -129,6 +130,14 @@ export default function AdminTriviaDashboard() {
         {isTournamentActive && tournament?.daysLeft !== undefined && (
           <div style={{fontSize:'20px'}}>⏰ {tournament.daysLeft} day(s) remaining</div>
         )}
+      </div>
+
+      {/* TODAY'S ACTION ITEMS */}
+      <div style={{background:'#fff3cd',padding:'20px',borderRadius:'12px',border:'2px solid #ffc107',marginBottom:'30px'}}>
+        <h3 style={{color:'#856404',marginTop:0,marginBottom:'10px'}}>📋 Today's Action Items</h3>
+        <p style={{color:'#856404',margin:0,fontSize:'16px',lineHeight:'1.6'}}>
+          {tournament?.instructions?.today || 'Tournament has not started yet. It opens on the 1st of the month or when you click Launch.'}
+        </p>
       </div>
 
       {/* CONTROL BUTTONS */}
@@ -183,24 +192,57 @@ export default function AdminTriviaDashboard() {
       )}
 
       {/* STATS */}
-      {reviewData && (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:'15px',marginBottom:'30px'}}>
-          <div style={{background:'white',padding:'20px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',textAlign:'center'}}>
-            <div style={{fontSize:'14px',color:'#666'}}>Total Books</div>
-            <div style={{fontSize:'32px',fontWeight:'bold',color:'#667eea'}}>{reviewData.stats.totalBooks}</div>
-          </div>
-          <div style={{background:'white',padding:'20px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',textAlign:'center'}}>
-            <div style={{fontSize:'14px',color:'#666'}}>Approved Questions</div>
-            <div style={{fontSize:'32px',fontWeight:'bold',color:'#28a745'}}>{reviewData.stats.approvedQuestions}</div>
-          </div>
-          <div style={{background:'white',padding:'20px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',textAlign:'center'}}>
-            <div style={{fontSize:'14px',color:'#666'}}>Flagged for Review</div>
-            <div style={{fontSize:'32px',fontWeight:'bold',color:'#dc3545'}}>{reviewData.stats.flaggedQuestions}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:'15px',marginBottom:'30px'}}>
+        <div style={{background:'white',padding:'20px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',textAlign:'center'}}>
+          <div style={{fontSize:'14px',color:'#666'}}>Total Players</div>
+          <div style={{fontSize:'32px',fontWeight:'bold',color:'#667eea'}}>{tournament?.totalPlayers || 0}</div>
+        </div>
+        <div style={{background:'white',padding:'20px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',textAlign:'center'}}>
+          <div style={{fontSize:'14px',color:'#666'}}>Completed Quiz</div>
+          <div style={{fontSize:'32px',fontWeight:'bold',color:'#28a745'}}>{tournament?.finishedPlayers || 0}</div>
+        </div>
+        <div style={{background:'white',padding:'20px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',textAlign:'center'}}>
+          <div style={{fontSize:'14px',color:'#666'}}>Prize Pool</div>
+          <div style={{fontSize:'32px',fontWeight:'bold',color:'#dc3545'}}>₦{(tournament?.totalPoolNaira || 0).toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* CURRENT LEADERS */}
+      {tournament?.winners && tournament.winners.length > 0 && (
+        <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px'}}>
+          <h3 style={{marginTop:0,color:'#333',marginBottom:'20px'}}>🏆 Current Leaders (Top 3)</h3>
+          <div style={{display:'flex',flexDirection:'column',gap:'15px'}}>
+            {tournament.winners.map((w: any, i: number) => (
+              <div key={i} style={{
+                background: i === 0 ? '#fff3cd' : i === 1 ? '#e7f3ff' : '#f8d7da',
+                padding:'20px',borderRadius:'8px',
+                border: `2px solid ${i === 0 ? '#ffc107' : i === 1 ? '#b8daff' : '#f5c6cb'}`
+              }}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'10px'}}>
+                  <div>
+                    <div style={{fontSize:'20px',fontWeight:'bold',color:'#333'}}>
+                      {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} {w.userName || 'Anonymous'}
+                    </div>
+                    <div style={{fontSize:'14px',color:'#666',marginTop:'5px'}}>
+                      📧 {w.userEmail}
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:'24px',fontWeight:'bold',color:'#28a745'}}>
+                      {w.score} correct
+                    </div>
+                    <div style={{fontSize:'13px',color:'#666'}}>
+                      Time: {Math.floor(w.completionTime / 60)}m {w.completionTime % 60}s
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* BOOK SELECTION */}
+      {/* BOOK SELECTION & REVIEW */}
       <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px'}}>
         <h3 style={{marginTop:0,color:'#333',marginBottom:'20px'}}>📚 Select 5 Featured Books</h3>
         <p style={{color:'#666',marginBottom:'15px',fontSize:'14px'}}>
