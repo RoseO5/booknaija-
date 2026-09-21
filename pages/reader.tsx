@@ -7,7 +7,7 @@ export default function PDFReader() {
   const router = useRouter();
   const { id } = router.query;
   const { data: session } = useSession();
-  
+
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [viewerUrl, setViewerUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -24,9 +24,8 @@ export default function PDFReader() {
       .then(data => {
         if (data.url) {
           setPdfUrl(data.url);
-          // 2. MAGIC FIX: Wrap the PDF URL in Mozilla's PDF.js viewer
-          // This forces mobile browsers to render it as a webpage, preventing downloads!
-          setViewerUrl(`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(data.url)}`);
+          // 2. SECURITY FIX: #toolbar=0&navpanes=0 completely hides the download/print buttons!
+          setViewerUrl(`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(data.url)}#toolbar=0&navpanes=0&scrollbar=1`);
         } else {
           setError(data.error || 'Failed to load book');
         }
@@ -44,18 +43,25 @@ export default function PDFReader() {
     };
     document.addEventListener('contextmenu', handleContextMenu);
 
+    // Prevent text selection
+    const handleSelectStart = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+    document.addEventListener('selectstart', handleSelectStart);
+
     // 4. HEARTBEAT TRACKING: Ping server every 30 seconds to log real reading time
     heartbeatRef.current = setInterval(() => {
       setSecondsRead(prev => {
         const newTime = prev + 30;
-        
+
         fetch('/api/books/track-reading', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            bookId: id, 
+          body: JSON.stringify({
+            bookId: id,
             userId: session?.user?.id,
-            timeSpent: 30 
+            timeSpent: 30
           })
         }).catch(err => console.error('Tracking error:', err));
 
@@ -65,6 +71,7 @@ export default function PDFReader() {
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('selectstart', handleSelectStart);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
   }, [id, session?.user?.email, session?.user?.id]);
@@ -125,13 +132,26 @@ export default function PDFReader() {
         BookNaija • {session?.user?.email} • Do Not Share
       </div>
 
-      {/* PDF Viewer: Uses Mozilla's engine, which works perfectly on ALL mobile phones */}
-      <iframe
-        src={viewerUrl}
-        style={{ flex: 1, width: '100%', border: 'none', background: '#525659' }}
-        title="PDF Reader"
-        allow="fullscreen"
-      />
+      {/* SECURE PDF Viewer Area */}
+      <div style={{ flex: 1, position: 'relative', background: '#525659' }}>
+        <iframe
+          src={viewerUrl}
+          style={{ width: '100%', height: '100%', border: 'none' }}
+          title="Secure PDF Reader"
+        />
+        
+        {/* TRANSPARENT SHIELD: Blocks clicks/long-presses on the top area where the toolbar would be */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '50px',
+          background: 'transparent',
+          zIndex: 15,
+          cursor: 'default'
+        }} />
+      </div>
     </div>
   );
 }
