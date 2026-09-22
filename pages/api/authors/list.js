@@ -13,15 +13,26 @@ export default async function handler(req, res) {
 
     // 2. For each author, calculate their real stats
     const authorsWithStats = await Promise.all(authors.map(async (author) => {
-      // Count published books by this author
+      
+      // ✅ FIX 1: Flexible name matching for accurate book count
+      const cleanName = author.fullName.trim().replace(/\s+/g, ' ');
+      const nameWords = cleanName.split(' ');
+      const flexibleNameRegex = new RegExp(nameWords.join('.*'), 'i');
+
       const totalBooks = await db.collection('books').countDocuments({
-        authorEmail: author.email,
+        $or: [
+          { authorEmail: author.email },
+          { authorName: flexibleNameRegex }
+        ],
         status: 'published'
       });
 
-      // Get all book IDs by this author
+      // Get all book IDs by this author (using the same flexible matching)
       const authorBooks = await db.collection('books').find({
-        authorEmail: author.email,
+        $or: [
+          { authorEmail: author.email },
+          { authorName: flexibleNameRegex }
+        ],
         status: 'published'
       }).project({ _id: 1 }).toArray();
 
@@ -48,7 +59,7 @@ export default async function handler(req, res) {
       }
 
       // --- COMPREHENSIVE EARNINGS CALCULATION ---
-      
+
       // 1. Calculate Reading earnings (Original logic preserved)
       let readingEarnings = 0;
       if (totalTimeSpent > 0) {
@@ -72,20 +83,20 @@ export default async function handler(req, res) {
       // 2. Add Unlocks and Tips (Already saved in the author's document)
       const coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
       const tipEarnings = author.earnings?.tips || 0;
-      
+
       // 3. Calculate Trivia Earnings for THIS author dynamically
       let triviaEarnings = 0;
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      
+
       const tournament = await db.collection('trivia_entries').findOne({ month: currentMonth });
       const config = await db.collection('trivia_config').findOne({ month: currentMonth });
-      
+
       if (tournament && config && config.featuredBooks) {
         const totalPool = tournament.totalPoolNaira || 0;
         const authorPoolTrivia = Math.floor(totalPool * 0.10); // 10% for authors
         const featuredBooksByThisAuthor = config.featuredBooks.filter(b => b.authorEmail === author.email);
-        
+
         if (featuredBooksByThisAuthor.length > 0) {
           const perAuthor = Math.floor(authorPoolTrivia / config.featuredBooks.length);
           triviaEarnings = featuredBooksByThisAuthor.length * perAuthor;
@@ -95,12 +106,19 @@ export default async function handler(req, res) {
       // 4. Total all categories together
       const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
 
+      // ✅ FIX 2: Return the breakdown so the UI can display it
       return {
         ...author,
         totalBooks,
         totalReads,
         totalTimeSpent,
-        earnings: totalEarnings // This is the number your admin dashboard will display
+        earnings: totalEarnings,
+        earningsBreakdown: {
+          reading: readingEarnings,
+          unlocks: coinUnlockEarnings,
+          tips: tipEarnings,
+          trivia: triviaEarnings
+        }
       };
     }));
 
