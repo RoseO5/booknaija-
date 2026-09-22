@@ -259,8 +259,34 @@ export default function BookDetail() {
             ].map((tip) => (
               <button
                 key={tip.amount}
-                onClick={() => handleTipAuthor(tip.amount)}
-                disabled={isTipping || (userCoins !== null && userCoins < tip.amount)}
+                onClick={async () => {
+                  if (userCoins !== null && userCoins < tip.amount) {
+                    if (confirm(`🪙 You need ${tip.amount} coins to tip.\n\nWould you like to buy coins now?`)) {
+                      if (!session?.user?.id || !session?.user?.email) {
+                        alert('❌ Please log in to buy coins.');
+                        return;
+                      }
+                      try {
+                        const res = await fetch('/api/coins/buy', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: session.user.id, email: session.user.email })
+                        });
+                        const data = await res.json();
+                        if (data.checkoutUrl) {
+                          window.location.href = data.checkoutUrl;
+                        } else {
+                          alert('❌ Error: ' + (data.error || 'Failed to initialize payment'));
+                        }
+                      } catch (err) {
+                        alert('❌ Network error. Please try again.');
+                      }
+                    }
+                    return;
+                  }
+                  handleTipAuthor(tip.amount);
+                }}
+                disabled={isTipping}
                 style={{
                   padding: '12px 8px',
                   background: isTipping || (userCoins !== null && userCoins < tip.amount) 
@@ -271,10 +297,26 @@ export default function BookDetail() {
                   borderRadius: '8px',
                   fontWeight: 'bold',
                   fontSize: '14px',
-                  cursor: isTipping || (userCoins !== null && userCoins < tip.amount) ? 'not-allowed' : 'pointer',
+                  cursor: isTipping ? 'not-allowed' : 'pointer',
+                  position: 'relative',
                   boxShadow: '0 2px 8px rgba(245, 87, 108, 0.2)'
                 }}
               >
+                {userCoins !== null && userCoins < tip.amount && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    background: '#ffc107',
+                    color: '#333',
+                    padding: '2px 6px',
+                    borderRadius: '10px',
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                  }}>
+                    Buy coins
+                  </div>
+                )}
                 <div style={{ fontSize: '16px' }}>🪙 {tip.amount}</div>
                 <div style={{ fontSize: '11px', marginTop: '4px' }}>{tip.label}</div>
                 <div style={{ fontSize: '10px', opacity: 0.9 }}>{tip.naira}</div>
