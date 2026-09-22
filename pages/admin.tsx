@@ -243,6 +243,28 @@ export default function Admin() {
             <p><strong>Total Books:</strong> {revenue.summary?.totalBooks}</p>
             <p><strong>Total Reads:</strong> {revenue.summary?.totalReads}</p>
           </div>
+          
+          {/* REVENUE CALCULATION LEGEND */}
+          <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '12px', marginTop: '20px', border: '2px solid #ffc107' }}>
+            <h4 style={{ marginTop: 0, color: '#856404' }}>💰 Quick Revenue Reminder</h4>
+            <div style={{ fontSize: '13px', color: '#856404', lineHeight: '1.8' }}>
+              <div style={{ marginBottom: '10px' }}>
+                <strong style={{ color: '#f5576c' }}>🎁 Tips:</strong> ₦0.10 per coin tipped (100% goes to the author)
+              </div>
+              <div style={{ marginBottom: '10px' }}>
+                <strong style={{ color: '#fd7e14' }}>🔓 Unlocks:</strong> ₦10 per 24-hr unlock by unsubscribed readers (Author gets ₦10, You keep 80% of unlock fee)
+              </div>
+              <div style={{ marginBottom: '10px' }}>
+                <strong style={{ color: '#6f42c1' }}>🏆 Trivia Authors:</strong> 10% of total trivia pool, split equally among the 5 featured authors
+              </div>
+              <div style={{ marginBottom: '10px' }}>
+                <strong style={{ color: '#28a745' }}>🏆 Trivia Winners:</strong> Top 3 share 50% of the pool (1st: 30%, 2nd: 14%, 3rd: 6%). You keep 40%.
+              </div>
+              <div>
+                <strong style={{ color: '#0056b3' }}>📖 Reading:</strong> 50% of subscription revenue (₦1000 × active subscribers) split by reading time share
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
