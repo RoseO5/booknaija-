@@ -107,6 +107,14 @@ export default async function handler(req, res) {
       const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
 
       // ✅ FIX 2: Return the breakdown so the UI can display it
+      // Check if already paid this month
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const payoutThisMonth = await db.collection('payouts').findOne({
+        authorEmail: author.email,
+        month: currentMonth
+      });
+
       return {
         ...author,
         totalBooks,
@@ -118,7 +126,12 @@ export default async function handler(req, res) {
           unlocks: coinUnlockEarnings,
           tips: tipEarnings,
           trivia: triviaEarnings
-        }
+        },
+        paidThisMonth: !!payoutThisMonth,
+        lastPayout: payoutThisMonth ? {
+          amount: payoutThisMonth.amount,
+          date: payoutThisMonth.paidAt
+        } : null
       };
     }));
 

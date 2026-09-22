@@ -425,8 +425,63 @@ export default function Admin() {
                   <div style={{ marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '6px', fontSize: '13px' }}>
                     <strong>💰 Payment Details:</strong><br/>{a.bankName} • {a.accountNumber} ({a.accountName})
                   </div>
-                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                    📚 Books: {a.totalBooks || 0} • 👁️ Reads: {a.totalReads || 0} • 💵 Earnings: ₦{(a.earnings || 0).toLocaleString()}
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#333', fontWeight: 'bold' }}>
+                    📚 Books: {a.totalBooks || 0} • 👁️ Reads: {a.totalReads || 0} • 💵 <span style={{color:'#28a745'}}>Total: ₦{(a.earnings || 0).toLocaleString()}</span>
+                  </div>
+                  {a.earningsBreakdown && (a.earningsBreakdown.reading > 0 || a.earningsBreakdown.unlocks > 0 || a.earningsBreakdown.tips > 0 || a.earningsBreakdown.trivia > 0) && (
+                    <div style={{ marginTop: '10px', padding: '10px', background: '#fff', borderRadius: '6px', fontSize: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', border: '1px solid #e9ecef' }}>
+                      <div style={{color:'#28a745'}}>📖 Reading: ₦{a.earningsBreakdown.reading.toLocaleString()}</div>
+                      <div style={{color:'#fd7e14'}}>🔓 Unlocks: ₦{a.earningsBreakdown.unlocks.toLocaleString()}</div>
+                      <div style={{color:'#f5576c'}}>🎁 Tips: ₦{a.earningsBreakdown.tips.toLocaleString()}</div>
+                      <div style={{color:'#6f42c1'}}>🏆 Trivia: ₦{a.earningsBreakdown.trivia.toLocaleString()}</div>
+                    </div>
+                  )}
+                  <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {a.paidThisMonth ? (
+                      <div style={{ background: '#d4edda', padding: '8px 16px', borderRadius: '6px', fontSize: '12px', color: '#155724', fontWeight: 'bold', width: '100%', textAlign: 'center' }}>
+                        ✅ Paid ₦{a.lastPayout?.amount?.toLocaleString()} on {new Date(a.lastPayout?.date).toLocaleDateString()}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`💰 Mark ${a.fullName} as paid ₦${a.earnings.toLocaleString()}?\n\nThis will reset their pending earnings to zero.`)) return;
+                          try {
+                            const res = await fetch('/api/authors/mark-paid', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                authorEmail: a.email,
+                                amount: a.earnings,
+                                breakdown: a.earningsBreakdown
+                              })
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                              alert(`✅ ${data.message}`);
+                              window.location.reload();
+                            } else {
+                              alert(`❌ ${data.error}`);
+                            }
+                          } catch (err) {
+                            alert('❌ Network error');
+                          }
+                        }}
+                        disabled={a.earnings === 0}
+                        style={{
+                          padding: '8px 16px',
+                          background: a.earnings > 0 ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' : '#ccc',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontWeight: 'bold',
+                          fontSize: '12px',
+                          cursor: a.earnings > 0 ? 'pointer' : 'not-allowed',
+                          width: '100%'
+                        }}
+                      >
+                        💰 Mark as Paid
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
