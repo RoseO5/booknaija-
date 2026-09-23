@@ -10,66 +10,44 @@ export default async function handler(req, res) {
     const client = await clientPromise;
     const db = client.db('booknaija');
 
-    // 1. Get author by email (case-insensitive)
+    // 1. Find Author (Case-insensitive)
     let author = await db.collection('authors').findOne({ 
       email: { $regex: new RegExp(`^${email}$`, 'i') } 
     });
 
-    if (!author) {
-      return res.status(404).json({ error: `Author profile not found for email: "${email}"` });
-    }
+    if (!author) return res.status(404).json({ error: 'Author not found' });
 
-    // 🔥 SMART FALLBACK: If this author has 0 books, check for another author with the SAME PHONE NUMBER
+    // 2. Find Books (Flexible name matching, ONLY published - just like Admin)
     const cleanName = author.fullName.trim().replace(/\s+/g, ' ');
-    const nameRegex = new RegExp(cleanName.split(' ').join('.*'), 'i');
-    
-    const bookCount = await db.collection('books').countDocuments({
-      $or: [{ authorEmail: author.email }, { authorName: nameRegex }]
-    });
-
-    if (bookCount === 0 && author.phone) {
-      const altAuthor = await db.collection('authors').findOne({ phone: author.phone });
-      
-      if (altAuthor && altAuthor._id.toString() !== author._id.toString()) {
-        const altCleanName = altAuthor.fullName.trim().replace(/\s+/g, ' ');
-        const altNameRegex = new RegExp(altCleanName.split(' ').join('.*'), 'i');
-        const altBookCount = await db.collection('books').countDocuments({
-          $or: [{ authorEmail: altAuthor.email }, { authorName: altNameRegex }]
-        });
-
-        if (altBookCount > 0) {
-          console.log(`🔄 Swapped to author with phone ${author.phone} who has ${altBookCount} books`);
-          author = altAuthor; // Use the account that actually has books!
-        }
-      }
-    }
-
-    // 2. Get all books by this (potentially swapped) author
-    const finalCleanName = author.fullName.trim().replace(/\s+/g, ' ');
-    const finalNameRegex = new RegExp(finalCleanName.split(' ').join('.*'), 'i');
+    const nameWords = cleanName.split(' ');
+    const flexibleNameRegex = new RegExp(nameWords.join('.*'), 'i');
 
     const books = await db.collection('books').find({
       $or: [
         { authorEmail: author.email },
-        { authorName: finalNameRegex }
-      ]
+        { authorName: flexibleNameRegex }
+      ],
+      status: 'published'
     }).toArray();
 
-    const bookIds = books.map(b => b._id.toString());
+    // 🔥 THE CRITICAL FIX: Keep IDs as ObjectIds (NO .toString())
+    // This matches exactly what the Admin Dashboard does.
+    const bookIds = books.map(b => b._id);
 
-    // 3. Calculate reading earnings (100% time-based, completed reads on author's books)
+    // 3. Calculate Earnings (100% time-based)
     let totalTimeSpent = 0;
     if (bookIds.length > 0) {
       const readsAgg = await db.collection('reads').aggregate([
         { $match: { bookId: { $in: bookIds }, completed: true } },
-        { $group: { _id: null, totalTime: { $sum: '$timeSpent' } } }
+        { $group: { _id: null, totalReads: { $sum: 1 }, totalTime: { $sum: '$timeSpent' } } }
       ]).toArray();
-      
+
       if (readsAgg.length > 0) {
         totalTimeSpent = readsAgg[0].totalTime;
       }
     }
 
+    // Platform totals
     const platformAgg = await db.collection('reads').aggregate([
       { $match: { completed: true } },
       { $group: { _id: null, total: { $sum: '$timeSpent' } } }
@@ -85,14 +63,13 @@ export default async function handler(req, res) {
       readingEarnings = Math.round((totalTimeSpent / platformTotalTime) * authorPool);
     }
 
-    // 4. Get other earnings
+    // Other earnings
     const coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
     const tipEarnings = author.earnings?.tips || 0;
     const triviaEarnings = author.earnings?.trivia || 0;
-
     const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
 
-    // 5. Send response
+    // Response
     res.status(200).json({
       isAuthor: true,
       author: {
@@ -105,9 +82,6 @@ export default async function handler(req, res) {
       stats: {
         books: books.length,
         totalTimeSpent: totalTimeSpent
-      },
-      breakdown: {
-        readingPercent: platformTotalTime > 0 ? ((totalTimeSpent / platformTotalTime) * 100).toFixed(2) : '0.00'
       },
       earnings: {
         fromReading: readingEarnings,
