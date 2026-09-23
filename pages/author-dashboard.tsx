@@ -35,6 +35,20 @@ export default function AuthorDashboard() {
     );
   }
 
+  // ✅ SMART REDIRECT: Show API errors first
+  if (data?.error) {
+    return (
+      <div style={{padding:'40px',textAlign:'center',maxWidth:'600px',margin:'50px auto',fontFamily:'Arial'}}>
+        <div style={{background:'#f8d7da',color:'#721c24',padding:'30px',borderRadius:'12px',border:'2px solid #f5c6cb'}}>
+          <h2 style={{marginBottom:'15px'}}>⚠️ Dashboard Error</h2>
+          <p style={{fontSize:'16px',fontWeight:'bold',marginBottom:'20px'}}>{data.error}</p>
+          <p style={{fontSize:'14px'}}>Please ensure you are logged in with the email you used to register as an author, or complete your author profile.</p>
+          <a href="/author-onboarding" style={{display:'inline-block',marginTop:'15px',padding:'12px 30px',background:'#dc3545',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>Complete Author Profile</a>
+        </div>
+      </div>
+    );
+  }
+
   // ✅ SMART REDIRECT: If not an author yet, show friendly onboarding prompt
   if (!data?.isAuthor) {
     return (
