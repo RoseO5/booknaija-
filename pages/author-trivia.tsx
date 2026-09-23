@@ -8,10 +8,10 @@ export default function AuthorTrivia() {
   const router = useRouter();
   const [books, setBooks] = useState<any[]>([]);
   const [selectedBook, setSelectedBook] = useState<any>(null);
-  const [questions, setQuestions] = useState<{question: string, answer: string}[]>([
-    { question: '', answer: '' },
-    { question: '', answer: '' },
-    { question: '', answer: '' }
+  const [questions, setQuestions] = useState<any[]>([
+    { question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' },
+    { question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' },
+    { question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -37,7 +37,7 @@ export default function AuthorTrivia() {
   };
 
   const handleAddQuestion = () => {
-    setQuestions([...questions, { question: '', answer: '' }]);
+    setQuestions([...questions, { question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' }]);
   };
 
   const handleRemoveQuestion = (index: number) => {
@@ -46,7 +46,7 @@ export default function AuthorTrivia() {
     }
   };
 
-  const handleQuestionChange = (index: number, field: 'question' | 'answer', value: string) => {
+  const handleQuestionChange = (index: number, field: string, value: string) => {
     const updated = [...questions];
     updated[index][field] = value;
     setQuestions(updated);
@@ -55,9 +55,17 @@ export default function AuthorTrivia() {
   const handleSubmit = async () => {
     if (!selectedBook || !session?.user?.email) return;
 
-    const validQuestions = questions.filter(q => q.question.trim() && q.answer.trim());
+    const validQuestions = questions.filter(q => 
+      q.question.trim() && 
+      q.optionA.trim() && 
+      q.optionB.trim() && 
+      q.optionC.trim() && 
+      q.optionD.trim() && 
+      q.correctAnswer
+    );
+    
     if (validQuestions.length === 0) {
-      alert('❌ Please add at least one question and answer.');
+      alert('❌ Please add at least one complete question with all 4 options and correct answer selected.');
       return;
     }
 
@@ -76,7 +84,11 @@ export default function AuthorTrivia() {
       const data = await res.json();
       if (res.ok && data.success) {
         setMessage(data.message);
-        setQuestions([{ question: '', answer: '' }, { question: '', answer: '' }, { question: '', answer: '' }]);
+        setQuestions([
+          { question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' },
+          { question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' },
+          { question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' }
+        ]);
       } else {
         alert('❌ ' + data.error);
       }
@@ -92,10 +104,10 @@ export default function AuthorTrivia() {
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', fontFamily: 'Arial' }}>
       <button onClick={() => router.push('/')} style={{ marginBottom: '20px', padding: '8px 16px', background: '#f1f1f1', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>← Back</button>
-      
+
       <h1 style={{ color: '#333', marginBottom: '10px' }}>🎯 Add Trivia Questions</h1>
       <p style={{ color: '#666', marginBottom: '30px' }}>
-        Help make our monthly trivia tournaments more engaging! Add questions about your books.
+        Help make our monthly trivia tournaments more engaging! Add multiple-choice questions about your books.
         If your book is featured in the monthly tournament, you'll earn ₦10!
       </p>
 
@@ -124,7 +136,7 @@ export default function AuthorTrivia() {
                   {book.genre}
                 </div>
                 <div style={{ fontSize: '12px', color: book.triviaCount > 0 ? '#28a745' : '#999', marginTop: '5px' }}>
-                  {book.triviaCount > 0 ? `✅ ${book.triviaCount} questions added` : '⚠️ No questions yet'}
+                  {book.triviaCount > 0 ? ` ✅ ${book.triviaCount} questions added` : '⚠️ No questions yet'}
                 </div>
               </div>
             ))}
@@ -136,10 +148,10 @@ export default function AuthorTrivia() {
       {selectedBook && (
         <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
           <h3 style={{ marginBottom: '15px' }}>
-            ✍️ Add Questions for: <span style={{ color: '#667eea' }}>{selectedBook.title}</span>
+            ✍️ Add Multiple-Choice Questions for: <span style={{ color: '#667eea' }}>{selectedBook.title}</span>
           </h3>
           <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>
-            Examples: "What is the main lesson?", "Who is the main character?", "What does [word] mean according to the author?"
+            Add engaging questions with 4 options (A, B, C, D) and select the correct answer.
           </p>
 
           {questions.map((q, index) => (
@@ -155,6 +167,7 @@ export default function AuthorTrivia() {
                   </button>
                 )}
               </div>
+              
               <input
                 type="text"
                 placeholder="Enter your question..."
@@ -162,13 +175,49 @@ export default function AuthorTrivia() {
                 onChange={(e) => handleQuestionChange(index, 'question', e.target.value)}
                 style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
               />
+              
               <input
                 type="text"
-                placeholder="Enter the correct answer..."
-                value={q.answer}
-                onChange={(e) => handleQuestionChange(index, 'answer', e.target.value)}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                placeholder="Option A..."
+                value={q.optionA}
+                onChange={(e) => handleQuestionChange(index, 'optionA', e.target.value)}
+                style={{ width: '100%', padding: '10px', marginBottom: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
               />
+              
+              <input
+                type="text"
+                placeholder="Option B..."
+                value={q.optionB}
+                onChange={(e) => handleQuestionChange(index, 'optionB', e.target.value)}
+                style={{ width: '100%', padding: '10px', marginBottom: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+              
+              <input
+                type="text"
+                placeholder="Option C..."
+                value={q.optionC}
+                onChange={(e) => handleQuestionChange(index, 'optionC', e.target.value)}
+                style={{ width: '100%', padding: '10px', marginBottom: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+              
+              <input
+                type="text"
+                placeholder="Option D..."
+                value={q.optionD}
+                onChange={(e) => handleQuestionChange(index, 'optionD', e.target.value)}
+                style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+              />
+              
+              <select
+                value={q.correctAnswer}
+                onChange={(e) => handleQuestionChange(index, 'correctAnswer', e.target.value)}
+                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', background: 'white' }}
+              >
+                <option value="A">Correct Answer: Option A</option>
+                <option value="B">Correct Answer: Option B</option>
+                <option value="C">Correct Answer: Option C</option>
+                <option value="D">Correct Answer: Option D</option>
+              </select>
             </div>
           ))}
 
