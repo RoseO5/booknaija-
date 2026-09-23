@@ -1,4 +1,5 @@
 import clientPromise from '../../lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 export default async function handler(req, res) {
   try {
@@ -24,29 +25,38 @@ export default async function handler(req, res) {
       $or: [{ authorEmail: author.email }, { authorName: nameRegex }]
     }).toArray();
     
-    const bookIds = books.map(b => b._id.toString());
+    const bookIdsString = books.map(b => b._id.toString());
+    const bookIdsObject = books.map(b => new ObjectId(b._id));
 
-    // 3. Check Reads by bookId (How the API currently does it)
-    const readsByBookId = await db.collection('reads').aggregate([
-      { $match: { bookId: { $in: bookIds }, completed: true } },
-      { $group: { _id: null, totalReads: { $sum: 1 }, totalTime: { $sum: '$timeSpent' } } }
-    ]).toArray();
-
-    // 4. Check Reads by userEmail (Direct check)
-    const readsByUserEmail = await db.collection('reads').find({ 
-      userEmail: author.email, 
-      completed: true 
+    // 3. Check ALL reads by this user (ignoring 'completed' status to see what's there)
+    const allUserReads = await db.collection('reads').find({ 
+      userEmail: author.email 
     }).toArray();
 
-    // 5. Return the raw truth
+    // 4. Check reads matching bookId as STRING
+    const readsByStringId = await db.collection('reads').find({ 
+      bookId: { $in: bookIdsString } 
+    }).toArray();
+
+    // 5. Check reads matching bookId as OBJECT ID
+    const readsByObjectId = await db.collection('reads').find({ 
+      bookId: { $in: bookIdsObject } 
+    }).toArray();
+
+    // 6. Return the raw truth
     res.status(200).json({
       status: 'success',
-      authorFound: { name: author.fullName, email: author.email },
+      authorFound: author.fullName,
       booksFoundCount: books.length,
-      bookIdsSample: bookIds.slice(0, 3),
-      readsMatchedByBookId: readsByBookId.length > 0 ? readsByBookId[0] : '0 reads found',
-      directReadsByUserEmailCount: readsByUserEmail.length,
-      sampleReadBookId: readsByUserEmail.length > 0 ? { id: readsByUserEmail[0].bookId, type: typeof readsByUserEmail[0].bookId } : 'none'
+      allReadsForThisUserCount: allUserReads.length,
+      sampleUserRead: allUserReads.length > 0 ? { 
+        bookId: allUserReads[0].bookId, 
+        bookIdType: typeof allUserReads[0].bookId,
+        completed: allUserReads[0].completed,
+        timeSpent: allUserReads[0].timeSpent 
+      } : 'none',
+      readsMatchingStringId: readsByStringId.length,
+      readsMatchingObjectId: readsByObjectId.length
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
