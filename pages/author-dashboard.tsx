@@ -35,21 +35,18 @@ export default function AuthorDashboard() {
     );
   }
 
-  // ✅ SMART REDIRECT: Show API errors first
   if (data?.error) {
     return (
       <div style={{padding:'40px',textAlign:'center',maxWidth:'600px',margin:'50px auto',fontFamily:'Arial'}}>
         <div style={{background:'#f8d7da',color:'#721c24',padding:'30px',borderRadius:'12px',border:'2px solid #f5c6cb'}}>
           <h2 style={{marginBottom:'15px'}}>⚠️ Dashboard Error</h2>
           <p style={{fontSize:'16px',fontWeight:'bold',marginBottom:'20px'}}>{data.error}</p>
-          <p style={{fontSize:'14px'}}>Please ensure you are logged in with the email you used to register as an author, or complete your author profile.</p>
           <a href="/author-onboarding" style={{display:'inline-block',marginTop:'15px',padding:'12px 30px',background:'#dc3545',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold'}}>Complete Author Profile</a>
         </div>
       </div>
     );
   }
 
-  // ✅ SMART REDIRECT: If not an author yet, show friendly onboarding prompt
   if (!data?.isAuthor) {
     return (
       <div style={{padding:'20px',maxWidth:'600px',margin:'50px auto',fontFamily:'Arial'}}>
@@ -69,19 +66,18 @@ export default function AuthorDashboard() {
 
   return (
     <div style={{padding:'20px',maxWidth:'800px',margin:'0 auto',fontFamily:'Arial'}}>
-      {/* Header with Upload Button */}
+      {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'30px',flexWrap:'wrap',gap:'15px'}}>
         <div>
           <h1 style={{color:'#667eea',margin:0}}>✍️ My Author Dashboard</h1>
           <p style={{color:'#666',margin:'5px 0 0'}}>Welcome, {data.author?.name}!</p>
         </div>
-        {/* ✅ FEATURE 1: Upload directly from dashboard */}
         <a href="/upload" style={{display:'inline-flex',alignItems:'center',gap:'8px',padding:'12px 24px',background:'#28a745',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold',fontSize:'16px',boxShadow:'0 4px 12px rgba(40,167,69,0.3)'}}>
           📤 Upload New Book
         </a>
       </div>
 
-      {/* Authors WhatsApp Community Section */}
+      {/* WhatsApp Community */}
       <div style={{background:'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center',marginBottom:'30px',boxShadow:'0 4px 12px rgba(37,211,102,0.3)'}}>
         <div style={{fontSize:'48px',marginBottom:'10px'}}>💬</div>
         <h3 style={{marginTop:0,marginBottom:'10px',fontSize:'22px'}}>Join the BookNaija Authors Community</h3>
@@ -107,18 +103,45 @@ export default function AuthorDashboard() {
         </div>
         <div style={{background:'linear-gradient(135deg,#fd7e14 0%,#ffc107 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center'}}>
           <div style={{fontSize:'14px',opacity:0.9}}>Total Reads</div>
-          <div style={{fontSize:'32px',fontWeight:'bold'}}>{data.stats?.reads || 0}</div>
+          <div style={{fontSize:'32px',fontWeight:'bold'}}>{data.stats?.totalReads || 0}</div>
           <div style={{fontSize:'12px',opacity:0.8}}>All time</div>
         </div>
       </div>
 
-      {/* ✅ FEATURE 2: My Uploaded Books List */}
+      {/* Detailed Earnings Breakdown */}
+      <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px'}}>
+        <h3 style={{marginTop:0,color:'#333',marginBottom:'20px'}}>💰 Detailed Earnings Breakdown</h3>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))',gap:'15px',marginBottom:'20px'}}>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #28a745'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>📖 From Reading</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#28a745'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromReading : 0)?.toLocaleString() || 0}</div>
+          </div>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #fd7e14'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🔓 24-Hr Unlocks</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#fd7e14'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromCoinUnlocks : 0)?.toLocaleString() || 0}</div>
+          </div>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #f5576c'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🎁 From Tips</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#f5576c'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTips : 0)?.toLocaleString() || 0}</div>
+          </div>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #6f42c1'}}>
+            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🏆 Trivia Features</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color:'#6f42c1'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTrivia : 0)?.toLocaleString() || 0}</div>
+          </div>
+        </div>
+        <div style={{background:'#e7f3ff',padding:'15px',borderRadius:'8px',textAlign:'center'}}>
+          <p style={{margin:0,fontSize:'14px',color:'#004085'}}>
+            <strong>Calculation Method:</strong> 100% based on total completed reading minutes from the 50% author revenue pool.
+          </p>
+        </div>
+      </div>
+
+      {/* My Uploaded Books List */}
       <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px'}}>
         <h3 style={{marginTop:0,color:'#333',marginBottom:'20px'}}>📚 My Uploaded Books</h3>
-        
-        {data.stats?.booksList && data.stats.booksList.length > 0 ? (
+        {data.booksList && data.booksList.length > 0 ? (
           <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-            {data.stats.booksList.map((book: any, index: number) => (
+            {data.booksList.map((book: any, index: number) => (
               <div key={index} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'15px',background:'#f8f9fa',borderRadius:'8px',borderLeft:`4px solid ${book.status === 'published' ? '#28a745' : '#ffc107'}`}}>
                 <div>
                   <div style={{fontWeight:'bold',color:'#333',fontSize:'16px'}}>{book.title}</div>
@@ -133,7 +156,7 @@ export default function AuthorDashboard() {
                   color: book.status === 'published' ? '#155724' : '#856404',
                   textTransform:'uppercase'
                 }}>
-                  {book.status === 'published' ? '✅ Published' : '⏳ Pending Approval'}
+                  {book.status === 'published' ? '✅ Published' : '⏳ Pending'}
                 </span>
               </div>
             ))}
@@ -155,36 +178,6 @@ export default function AuthorDashboard() {
         <a href="/author-trivia" style={{display:'inline-block',padding:'12px 30px',background:'#667eea',color:'white',textDecoration:'none',borderRadius:'8px',fontWeight:'bold',fontSize:'16px',boxShadow:'0 4px 12px rgba(102,126,234,0.3)'}}>
           ✍️ Add Trivia Questions Now
         </a>
-      </div>
-
-      {/* COMPREHENSIVE EARNINGS BREAKDOWN */}
-      <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'20px'}}>
-        <h3 style={{marginTop:0,color:'#333',marginBottom:'20px'}}>💰 Detailed Earnings Breakdown</h3>
-        
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))',gap:'15px',marginBottom:'20px'}}>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #28a745'}}>
-            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>📖 From Reading</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#28a745'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromReading : 0)?.toLocaleString() || 0}</div>
-          </div>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #fd7e14'}}>
-            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🔓 24-Hr Unlocks</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#fd7e14'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromCoinUnlocks : 0)?.toLocaleString() || 0}</div>
-          </div>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #f5576c'}}>
-            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🎁 From Tips</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#f5576c'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTips : 0)?.toLocaleString() || 0}</div>
-          </div>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #6f42c1'}}>
-            <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🏆 Trivia Features</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#6f42c1'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTrivia : 0)?.toLocaleString() || 0}</div>
-          </div>
-        </div>
-
-        <div style={{background:'#e7f3ff',padding:'15px',borderRadius:'8px',textAlign:'center'}}>
-          <p style={{margin:0,fontSize:'14px',color:'#004085'}}>
-            <strong>Calculation Method:</strong> 70% based on total reading minutes, 30% based on unique readers from the ₦1,000 subscription pool.
-          </p>
-        </div>
       </div>
 
       {/* Payment Details */}

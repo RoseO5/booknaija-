@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
     if (!author) return res.status(404).json({ error: 'Author not found' });
 
-    // 2. Find Books (Flexible name matching, ONLY published - just like Admin)
+    // 2. Find Books (Flexible name matching)
     const cleanName = author.fullName.trim().replace(/\s+/g, ' ');
     const nameWords = cleanName.split(' ');
     const flexibleNameRegex = new RegExp(nameWords.join('.*'), 'i');
@@ -26,16 +26,16 @@ export default async function handler(req, res) {
       $or: [
         { authorEmail: author.email },
         { authorName: flexibleNameRegex }
-      ],
-      status: 'published'
-    }).toArray();
+      ]
+    }).sort({ createdAt: -1 }).toArray();
 
-    // 🔥 THE CRITICAL FIX: Keep IDs as ObjectIds (NO .toString())
-    // This matches exactly what the Admin Dashboard does.
+    // CRITICAL: Keep IDs as ObjectIds for accurate read matching
     const bookIds = books.map(b => b._id);
 
     // 3. Calculate Earnings (100% time-based)
     let totalTimeSpent = 0;
+    let totalReads = 0;
+    
     if (bookIds.length > 0) {
       const readsAgg = await db.collection('reads').aggregate([
         { $match: { bookId: { $in: bookIds }, completed: true } },
@@ -44,10 +44,10 @@ export default async function handler(req, res) {
 
       if (readsAgg.length > 0) {
         totalTimeSpent = readsAgg[0].totalTime;
+        totalReads = readsAgg[0].totalReads;
       }
     }
 
-    // Platform totals
     const platformAgg = await db.collection('reads').aggregate([
       { $match: { completed: true } },
       { $group: { _id: null, total: { $sum: '$timeSpent' } } }
@@ -63,11 +63,19 @@ export default async function handler(req, res) {
       readingEarnings = Math.round((totalTimeSpent / platformTotalTime) * authorPool);
     }
 
-    // Other earnings
+    // Other earnings (These reset to 0 when Admin clicks "Mark as Paid")
     const coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
     const tipEarnings = author.earnings?.tips || 0;
     const triviaEarnings = author.earnings?.trivia || 0;
     const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
+
+    // Format books list for frontend
+    const booksList = books.map(b => ({
+      title: b.title,
+      genre: b.genre || 'General',
+      status: b.status || 'pending',
+      createdAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB') : 'Recently'
+    }));
 
     // Response
     res.status(200).json({
@@ -81,8 +89,10 @@ export default async function handler(req, res) {
       },
       stats: {
         books: books.length,
+        totalReads: totalReads,
         totalTimeSpent: totalTimeSpent
       },
+      booksList: booksList,
       earnings: {
         fromReading: readingEarnings,
         fromCoinUnlocks: coinUnlockEarnings,
