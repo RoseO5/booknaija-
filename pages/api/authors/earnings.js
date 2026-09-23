@@ -37,7 +37,7 @@ export default async function handler(req, res) {
           _id: null,
           totalReads: { $sum: 1 },
           totalTime: { $sum: '$timeSpent' },
-          uniqueReaders: { $addToSet: '$userId' }
+          totalTimeSpent: { $addToSet: '$userId' }
       }}
     ]).toArray();
 
@@ -130,9 +130,7 @@ export default async function handler(req, res) {
         uniqueReaders
       },
       breakdown: {
-        minutesShare: (minutesShare * 100).toFixed(2),
-        readersShare: (readersShare * 100).toFixed(2),
-        totalShare: (totalShare * 100).toFixed(2)
+        readingPercent: platformTotalTime > 0 ? ((totalTimeSpent / platformTotalTime) * 100).toFixed(2) : '0.00'
       },
       earnings: {
         fromReading: readingEarnings,
