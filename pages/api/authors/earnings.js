@@ -87,9 +87,8 @@ export default async function handler(req, res) {
       { $group: { _id: null, total: { $sum: '$timeSpent' } } }
     ]).toArray();
 
-    const platformTotalTime = platformAgg.length > 0 ? platformAgg[0].total : 0;
-
     let readingEarnings = 0;
+    if (totalTimeSpent > 0 && platformTotalTime > 0) {
     if (totalTimeSpent > 0 && platformTotalTime > 0) {
       const activeSubscribers = await db.collection('users').countDocuments({
         'subscription.active': true
