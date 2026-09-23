@@ -69,11 +69,35 @@ export default async function handler(req, res) {
     const estimatedRevenue = activeSubscriptions * 1000;
     const authorPool = Math.floor(estimatedRevenue * 0.5);
 
-    // 6. Calculate author's share from reading
-    const minutesShare = platformTotalTime > 0 ? (totalTime / platformTotalTime) * 0.7 : 0;
-    const readersShare = platformUniqueReaders > 0 ? (uniqueReaders / platformUniqueReaders) * 0.3 : 0;
-    const totalShare = minutesShare + readersShare;
-    const readingEarnings = Math.floor(authorPool * totalShare);
+    // 6. Calculate author's share from reading (MATCHES ADMIN DASHBOARD EXACTLY)
+    // Only count COMPLETED reads for accurate earnings
+    const authorReadsAgg = await db.collection('reads').aggregate([
+      { $match: { 
+          userEmail: author.email, 
+          completed: true 
+        } 
+      },
+      { $group: { _id: null, totalTime: { $sum: '$timeSpent' } } }
+    ]).toArray();
+    
+    const totalTimeSpent = authorReadsAgg.length > 0 ? authorReadsAgg[0].totalTime : 0;
+
+    const platformAgg = await db.collection('reads').aggregate([
+      { $match: { completed: true } },
+      { $group: { _id: null, total: { $sum: '$timeSpent' } } }
+    ]).toArray();
+
+    const platformTotalTime = platformAgg.length > 0 ? platformAgg[0].total : 0;
+
+    let readingEarnings = 0;
+    if (totalTimeSpent > 0 && platformTotalTime > 0) {
+      const activeSubscribers = await db.collection('users').countDocuments({
+        'subscription.active': true
+      });
+      const monthlyRevenue = activeSubscribers * 1000; // ₦1000 per subscriber
+      const authorPool = monthlyRevenue * 0.5; // 50% goes to authors
+      readingEarnings = Math.round((totalTimeSpent / platformTotalTime) * authorPool);
+    }
     
     // ✅ NEW: Add all earning categories
     const coinUnlockEarnings = author.earnings?.coinUnlocks || 0; // ₦10 per 24-hr unlock
