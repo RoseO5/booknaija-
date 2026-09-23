@@ -10,9 +10,9 @@ export default async function handler(req, res) {
     const client = await clientPromise;
     const db = client.db('booknaija');
 
-    // 1. Get author
-    const author = await db.collection('authors').findOne({ email });
-    if (!author) return res.status(404).json({ error: 'Author not found' });
+    // 1. Get author (Case-insensitive match)
+    let author = await db.collection('authors').findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (!author) return res.status(404).json({ error: `Author profile not found for email: "${email}"` });
 
     // 2. Get all books by this author (flexible name matching)
     const cleanName = author.fullName.trim().replace(/\s+/g, ' ');
@@ -26,11 +26,12 @@ export default async function handler(req, res) {
       ]
     }).toArray();
 
-    const bookIds = books.map(b => b._id);
+    // Get the IDs of the author's books
+    const bookIds = books.map(b => b._id.toString());
 
-    // 3. Calculate reading earnings (100% time-based, completed reads only)
+    // 3. Calculate reading earnings (100% time-based, completed reads ON AUTHOR'S BOOKS)
     const authorReadsAgg = await db.collection('reads').aggregate([
-      { $match: { userEmail: author.email, completed: true } },
+      { $match: { bookId: { $in: bookIds }, completed: true } },
       { $group: { _id: null, totalTime: { $sum: '$timeSpent' } } }
     ]).toArray();
     
@@ -46,8 +47,8 @@ export default async function handler(req, res) {
     let readingEarnings = 0;
     if (totalTimeSpent > 0 && platformTotalTime > 0) {
       const activeSubscribers = await db.collection('users').countDocuments({ 'subscription.active': true });
-      const monthlyRevenue = activeSubscribers * 1000; // ₦1000 per subscriber
-      const authorPool = monthlyRevenue * 0.5; // 50% goes to authors
+      const monthlyRevenue = activeSubscribers * 1000;
+      const authorPool = monthlyRevenue * 0.5;
       readingEarnings = Math.round((totalTimeSpent / platformTotalTime) * authorPool);
     }
 
@@ -58,15 +59,7 @@ export default async function handler(req, res) {
 
     const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
 
-    // 5. Format books list for frontend
-    const booksList = books.map(b => ({
-      title: b.title,
-      genre: b.genre || 'General',
-      status: b.status || 'pending',
-      createdAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB') : 'Recently'
-    }));
-
-    // 6. Send response
+    // 5. Send response
     res.status(200).json({
       isAuthor: true,
       author: {
