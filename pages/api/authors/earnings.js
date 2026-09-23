@@ -5,15 +5,69 @@ export default async function handler(req, res) {
 
   try {
     const { email } = req.query;
-    if (!email) return res.status(400).json({ error: 'Email required' });
+    if (!email) return res.status(400).json({ error: 'Email is required' });
 
     const client = await clientPromise;
     const db = client.db('booknaija');
 
-    // 1. Check if user is an author
+    // 1. Get author
     const author = await db.collection('authors').findOne({ email });
-    if (!author) {
-      return     res.status(200).json({
+    if (!author) return res.status(404).json({ error: 'Author not found' });
+
+    // 2. Get all books by this author (flexible name matching)
+    const cleanName = author.fullName.trim().replace(/\s+/g, ' ');
+    const nameWords = cleanName.split(' ');
+    const flexibleNameRegex = new RegExp(nameWords.join('.*'), 'i');
+
+    const books = await db.collection('books').find({
+      $or: [
+        { authorEmail: author.email },
+        { authorName: flexibleNameRegex }
+      ]
+    }).toArray();
+
+    const bookIds = books.map(b => b._id);
+
+    // 3. Calculate reading earnings (100% time-based, completed reads only)
+    const authorReadsAgg = await db.collection('reads').aggregate([
+      { $match: { userEmail: author.email, completed: true } },
+      { $group: { _id: null, totalTime: { $sum: '$timeSpent' } } }
+    ]).toArray();
+    
+    const totalTimeSpent = authorReadsAgg.length > 0 ? authorReadsAgg[0].totalTime : 0;
+
+    const platformAgg = await db.collection('reads').aggregate([
+      { $match: { completed: true } },
+      { $group: { _id: null, total: { $sum: '$timeSpent' } } }
+    ]).toArray();
+
+    const platformTotalTime = platformAgg.length > 0 ? platformAgg[0].total : 0;
+
+    let readingEarnings = 0;
+    if (totalTimeSpent > 0 && platformTotalTime > 0) {
+      const activeSubscribers = await db.collection('users').countDocuments({ 'subscription.active': true });
+      const monthlyRevenue = activeSubscribers * 1000; // ₦1000 per subscriber
+      const authorPool = monthlyRevenue * 0.5; // 50% goes to authors
+      readingEarnings = Math.round((totalTimeSpent / platformTotalTime) * authorPool);
+    }
+
+    // 4. Get other earnings from author document
+    const coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
+    const tipEarnings = author.earnings?.tips || 0;
+    const triviaEarnings = author.earnings?.trivia || 0;
+
+    const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
+
+    // 5. Format books list for frontend
+    const booksList = books.map(b => ({
+      title: b.title,
+      genre: b.genre || 'General',
+      status: b.status || 'pending',
+      createdAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB') : 'Recently'
+    }));
+
+    // 6. Send response
+    res.status(200).json({
       isAuthor: true,
       author: {
         name: author.fullName,
