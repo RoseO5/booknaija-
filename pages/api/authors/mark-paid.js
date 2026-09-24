@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   try {
     const { authorEmail, amount, breakdown, notes } = req.body;
-    
+
     if (!authorEmail || !amount) {
       return res.status(400).json({ error: 'Author email and amount required' });
     }
@@ -24,8 +24,8 @@ export default async function handler(req, res) {
     });
 
     if (existingPayout) {
-      return res.status(400).json({ 
-        error: `This author was already paid ₦${existingPayout.amount} on ${new Date(existingPayout.paidAt).toLocaleDateString()}` 
+      return res.status(400).json({
+        error: `This author was already paid ₦${existingPayout.amount} on ${new Date(existingPayout.paidAt).toLocaleDateString()}`
       });
     }
 
@@ -34,12 +34,7 @@ export default async function handler(req, res) {
       authorEmail,
       month: currentMonth,
       amount: Number(amount),
-      breakdown: breakdown || {
-        reading: 0,
-        unlocks: 0,
-        tips: 0,
-        trivia: 0
-      },
+      breakdown: breakdown || { reading: 0, unlocks: 0, tips: 0, trivia: 0 },
       notes: notes || '',
       paidAt: now,
       paidBy: 'admin'
@@ -47,13 +42,16 @@ export default async function handler(req, res) {
 
     await db.collection('payouts').insertOne(payoutRecord);
 
-    // Reset the author's pending earnings (tips and unlocks only)
+    // 🔥 BULLETPROOF FIX: Overwrite the entire 'earnings' object to prevent array/type errors
     await db.collection('authors').updateOne(
       { email: authorEmail },
       {
         $set: {
-          'earnings.tips': 0,
-          'earnings.coinUnlocks': 0,
+          earnings: {
+            tips: 0,
+            coinUnlocks: 0,
+            trivia: 0
+          },
           lastPayoutAt: now,
           lastPayoutAmount: Number(amount)
         }
