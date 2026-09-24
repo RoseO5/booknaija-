@@ -11,6 +11,7 @@ export default function AdminTriviaDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedBooks, setSelectedBooks] = useState<any[]>([]);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [reviewingBook, setReviewingBook] = useState<any>(null);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -105,6 +106,28 @@ export default function AdminTriviaDashboard() {
   const tournament = tournamentData?.tournament;
   const featuredBooks = tournamentData?.featuredBooks || [];
   const isTournamentActive = tournament?.status === 'active';
+
+  
+  const handleQuestionAction = async (bookId: string, questionIndex: number, action: 'approve' | 'reject') => {
+    try {
+      const res = await fetch('/api/trivia/update-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId, questionIndex, action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const r = await fetch('/api/trivia/admin-review').then(r => r.json());
+        setReviewData(r);
+        const updatedBook = r.allBooks.find((b: any) => b.bookId === bookId);
+        setReviewingBook(updatedBook || null);
+      } else {
+        alert('❌ ' + data.error);
+      }
+    } catch (err) {
+      alert('❌ Network error');
+    }
+  };
 
   return (
     <div style={{padding:'20px',maxWidth:'1000px',margin:'0 auto',fontFamily:'Arial'}}>
@@ -293,6 +316,48 @@ export default function AdminTriviaDashboard() {
           </div>
         )}
       </div>
+    
+      {/* REVIEW MODAL */}
+      {reviewingBook && (
+        <div style={{position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'20px'}}>
+          <div style={{background:'white', borderRadius:'12px', padding:'25px', maxWidth:'600px', width:'100%', maxHeight:'80vh', overflowY:'auto'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
+              <h3 style={{margin:0, color:'#333'}}>Review: {reviewingBook.bookTitle}</h3>
+              <button onClick={() => setReviewingBook(null)} style={{background:'none', border:'none', fontSize:'28px', cursor:'pointer', color:'#666', lineHeight:1}}>×</button>
+            </div>
+            
+            {reviewingBook.questions.map((q: any, idx: number) => (
+              <div key={idx} style={{background: q.approved ? '#d4edda' : q.flagged ? '#f8d7da' : '#f8f9fa', padding:'15px', borderRadius:'8px', marginBottom:'15px', border: '1px solid #ddd'}}>
+                <div style={{fontWeight:'bold', marginBottom:'10px', color:'#333'}}>Q{idx+1}: {q.question}</div>
+                <div style={{fontSize:'14px', color:'#555', marginBottom:'10px', lineHeight:'1.6'}}>
+                  <div>A) {q.optionA || q.options?.[0] || 'N/A'}</div>
+                  <div>B) {q.optionB || q.options?.[1] || 'N/A'}</div>
+                  <div>C) {q.optionC || q.options?.[2] || 'N/A'}</div>
+                  <div>D) {q.optionD || q.options?.[3] || 'N/A'}</div>
+                  <div style={{marginTop:'8px', fontWeight:'bold', color:'#28a745'}}>Correct: {q.correctAnswer || q.answer || 'N/A'}</div>
+                </div>
+                <div style={{display:'flex', gap:'10px'}}>
+                  <button 
+                    onClick={() => handleQuestionAction(reviewingBook.bookId, idx, 'approve')}
+                    disabled={q.approved}
+                    style={{padding:'6px 12px', background: q.approved ? '#ccc' : '#28a745', color:'white', border:'none', borderRadius:'4px', cursor: q.approved ? 'not-allowed' : 'pointer', fontWeight:'bold'}}
+                  >
+                    {q.approved ? '✅ Approved' : '✅ Approve'}
+                  </button>
+                  <button 
+                    onClick={() => handleQuestionAction(reviewingBook.bookId, idx, 'reject')}
+                    disabled={q.flagged}
+                    style={{padding:'6px 12px', background: q.flagged ? '#ccc' : '#dc3545', color:'white', border:'none', borderRadius:'4px', cursor: q.flagged ? 'not-allowed' : 'pointer', fontWeight:'bold'}}
+                  >
+                    {q.flagged ? '🚫 Rejected' : '🚫 Reject'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
