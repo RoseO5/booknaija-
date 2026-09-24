@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    const update: any = {};
+    const update = {};
     if (action === 'approve') {
       update[`questions.${questionIndex}.approved`] = true;
       update[`questions.${questionIndex}.flagged`] = false;

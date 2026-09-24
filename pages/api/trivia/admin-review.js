@@ -20,19 +20,19 @@ export default async function handler(req, res) {
       authorName: b.authorName,
       authorEmail: b.authorEmail,
       totalQuestions: b.questions.length,
-      approvedQuestions: b.questions.filter((q: any) => q.approved).length,
-      flaggedQuestions: b.questions.filter((q: any) => q.flagged).length,
-      questions: b.questions // 🔥 ADDED: Send actual questions for manual review
-    })).sort((a: any, b: any) => b.approvedQuestions - a.approvedQuestions);
+      approvedQuestions: b.questions.filter(q => q.approved).length,
+      flaggedQuestions: b.questions.filter(q => q.flagged).length,
+      questions: b.questions
+    })).sort((a, b) => b.approvedQuestions - a.approvedQuestions);
 
     res.status(200).json({
       success: true,
       month: currentMonth,
       stats: {
         totalBooks: allTrivia.length,
-        totalQuestions: allTrivia.reduce((sum: number, b: any) => sum + b.questions.length, 0),
-        approvedQuestions: booksByQuality.reduce((sum: number, b: any) => sum + b.approvedQuestions, 0),
-        flaggedQuestions: booksByQuality.reduce((sum: number, b: any) => sum + b.flaggedQuestions, 0)
+        totalQuestions: allTrivia.reduce((sum, b) => sum + b.questions.length, 0),
+        approvedQuestions: booksByQuality.reduce((sum, b) => sum + b.approvedQuestions, 0),
+        flaggedQuestions: booksByQuality.reduce((sum, b) => sum + b.flaggedQuestions, 0)
       },
       allBooks: booksByQuality,
       autoSelected: booksByQuality.slice(0, 5),
