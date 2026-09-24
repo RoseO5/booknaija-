@@ -244,7 +244,7 @@ export default function Admin() {
       <details style={{ fontSize: '13px', color: '#856404', cursor: 'pointer' }}>
         <summary>View failed reports</summary>
         <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
-          {emailResult.details.failed.map((f, i) => (
+          {emailResult.details.failed.map((f: any, i: number) => (
             <li key={i}><strong>{f.name}</strong> ({f.email}): {f.reason}</li>
           ))}
         </ul>
