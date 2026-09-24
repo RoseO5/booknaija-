@@ -182,14 +182,19 @@ export default function AuthorDashboard() {
 
       {/* Payment Details */}
       <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)'}}>
-        <h3 style={{marginTop:0,color:'#333'}}>💳 Payment Details</h3>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'15px',flexWrap:'wrap',gap:'10px'}}>
+          <h3 style={{marginTop:0,marginBottom:0,color:'#333'}}>💳 Payment Details</h3>
+          <a href="/author-onboarding" style={{display:'inline-flex',alignItems:'center',gap:'6px',padding:'8px 16px',background:'#667eea',color:'white',textDecoration:'none',borderRadius:'6px',fontWeight:'bold',fontSize:'14px',boxShadow:'0 2px 6px rgba(102,126,234,0.3)'}}>
+            ✏️ Update Details
+          </a>
+        </div>
         <div style={{background:'#e7f3ff',padding:'15px',borderRadius:'8px'}}>
           <p style={{margin:'0 0 10px',color:'#004085'}}><strong>Bank:</strong> {data.author?.bank}</p>
           <p style={{margin:'0 0 10px',color:'#004085'}}><strong>Account:</strong> {data.author?.account}</p>
           <p style={{margin:0,color:'#004085'}}><strong>Name:</strong> {data.author?.accountName}</p>
         </div>
         <p style={{marginTop:'15px',fontSize:'14px',color:'#666'}}>
-          💡 Payments are processed monthly. Update your details via the author onboarding form if needed.
+          💡 Payments are processed monthly. Ensure your bank details are always up to date to receive your earnings without delay.
         </p>
       </div>
     </div>
