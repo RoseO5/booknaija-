@@ -234,7 +234,24 @@ export default function Admin() {
             <h4 style={{ marginTop: 0, color: '#004085' }}>📧 Author Reports</h4>
             <p style={{ color: '#004085', marginBottom: '15px' }}>Send monthly earnings reports to all authors automatically</p>
             <button onClick={sendAuthorReports} disabled={sendingEmails} style={{ padding: '12px 30px', background: sendingEmails ? '#999' : '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: sendingEmails ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}>{sendingEmails ? '📧 Sending...' : '📧 Send Reports to All Authors'}</button>
-            {emailResult && <p style={{ marginTop: '15px', color: '#155724' }}>✅ Sent {emailResult.sent} of {emailResult.total} reports</p>}
+            {emailResult && (
+  <div style={{ marginTop: '15px', padding: '15px', background: emailResult.failed > 0 ? '#fff3cd' : '#d4edda', borderRadius: '8px', border: '1px solid ' + (emailResult.failed > 0 ? '#ffeeba' : '#c3e6cb') }}>
+    <p style={{ margin: '0 0 10px', fontWeight: 'bold', color: emailResult.failed > 0 ? '#856404' : '#155724' }}>
+      Sent {emailResult.sent} of {emailResult.total} reports successfully.
+      {emailResult.failed > 0 ? ' Warning: ' + emailResult.failed + ' failed.' : ''}
+    </p>
+    {emailResult.failed > 0 && emailResult.details && emailResult.details.failed && (
+      <details style={{ fontSize: '13px', color: '#856404', cursor: 'pointer' }}>
+        <summary>View failed reports</summary>
+        <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
+          {emailResult.details.failed.map((f, i) => (
+            <li key={i}><strong>{f.name}</strong> ({f.email}): {f.reason}</li>
+          ))}
+        </ul>
+      </details>
+    )}
+  </div>
+)}
           </div>
           <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '12px' }}>
             <h4>📊 Platform Stats</h4>
