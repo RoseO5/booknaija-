@@ -11,149 +11,96 @@ export default async function handler(req, res) {
     const authors = await db.collection('authors').find({}).toArray();
 
     if (authors.length === 0) {
-      return res.status(200).json({ 
-        success: true, 
-        message: 'No authors to send reports to',
-        sent: 0 
-      });
+      return res.status(200).json({ success: true, sent: 0, failed: 0, details: { sent: [], failed: [] } });
     }
 
-    // Get platform stats
-    const activeSubscriptions = await db.collection('users').countDocuments({
-      role: 'reader',
-      'subscription.active': true
-    });
+    // Platform Stats
+    const activeSubscriptions = await db.collection('users').countDocuments({ 'subscription.active': true });
+    const monthlyRevenue = activeSubscriptions * 1000;
+    const authorPool = monthlyRevenue * 0.5; // 50% to authors
 
-    const estimatedRevenue = activeSubscriptions * 1000;
-    const authorPool = Math.floor(estimatedRevenue * 0.5);
-
-    // Get all reads for calculation
-    const allReads = await db.collection('reads').aggregate([
+    const platformAgg = await db.collection('reads').aggregate([
       { $match: { completed: true } },
-      { $group: { 
-          _id: null, 
-          totalTime: { $sum: '$timeSpent' },
-          uniqueReaders: { $addToSet: '$userId' }
-      }}
+      { $group: { _id: null, total: { $sum: '$timeSpent' } } }
     ]).toArray();
+    const platformTotalTime = platformAgg.length > 0 ? platformAgg[0].total : 1;
 
-    const platformTotalTime = allReads[0]?.totalTime || 1;
-    const platformUniqueReaders = allReads[0]?.uniqueReaders?.length || 1;
-
-    // Calculate earnings for each author
-    const reports = await Promise.all(authors.map(async (author) => {
-      const books = await db.collection('books').find({ 
-        authorEmail: author.email,
-        status: 'published'
-      }).toArray();
-
-      const bookIds = books.map(b => b._id);
-
-      const reads = await db.collection('reads').aggregate([
-        { $match: { bookId: { $in: bookIds }, completed: true } },
-        { $group: { 
-            _id: null, 
-            totalTime: { $sum: '$timeSpent' },
-            uniqueReaders: { $addToSet: '$userId' }
-        }}
-      ]).toArray();
-
-      const totalTime = reads[0]?.totalTime || 0;
-      const uniqueReaders = reads[0]?.uniqueReaders?.length || 0;
-
-      const minutesShare = (totalTime / platformTotalTime) * 0.7;
-      const readersShare = (uniqueReaders / platformUniqueReaders) * 0.3;
-      const totalShare = minutesShare + readersShare;
-      const earnings = Math.floor(authorPool * totalShare);
-
-      return {
-        email: author.email,
-        name: author.fullName,
-        books: books.length,
-        reads: reads[0]?.totalReads || 0,
-        minutes: Math.floor(totalTime / 60),
-        uniqueReaders,
-        earnings,
-        breakdown: {
-          minutesShare: (minutesShare * 100).toFixed(2),
-          readersShare: (readersShare * 100).toFixed(2)
-        }
-      };
-    }));
-
-    // Send emails (using Resend - free tier: 3000 emails/month)
     const sentReports = [];
-    
-    for (const report of reports) {
+    const failedReports = [];
+
+    for (const author of authors) {
+      // Skip authors without a valid email
+      if (!author.email || !author.email.includes('@')) {
+        failedReports.push({ name: author.fullName || 'Unknown', email: author.email || 'Missing', reason: 'Invalid or missing email address' });
+        continue;
+      }
+
       try {
-        // Email content
+        // 1. Find books (Flexible matching, just like dashboard)
+        const cleanName = author.fullName ? author.fullName.trim().replace(/\s+/g, ' ') : '';
+        const nameWords = cleanName.split(' ');
+        const flexibleNameRegex = new RegExp(nameWords.join('.*'), 'i');
+
+        const books = await db.collection('books').find({
+          $or: [{ authorEmail: author.email }, { authorName: flexibleNameRegex }],
+          status: 'published'
+        }).toArray();
+
+        const bookIds = books.map(b => b._id);
+
+        // 2. Calculate NEW 100% time-based earnings
+        let totalTime = 0;
+        let totalReads = 0;
+        if (bookIds.length > 0) {
+          const readsAgg = await db.collection('reads').aggregate([
+            { $match: { bookId: { $in: bookIds }, completed: true } },
+            { $group: { _id: null, totalTime: { $sum: '$timeSpent' }, totalReads: { $sum: 1 } } }
+          ]).toArray();
+          if (readsAgg.length > 0) {
+            totalTime = readsAgg[0].totalTime;
+            totalReads = readsAgg[0].totalReads;
+          }
+        }
+
+        let readingEarnings = 0;
+        if (totalTime > 0 && platformTotalTime > 0) {
+          readingEarnings = Math.round((totalTime / platformTotalTime) * authorPool);
+        }
+
+        // Add other earnings
+        const coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
+        const tipEarnings = author.earnings?.tips || 0;
+        const triviaEarnings = author.earnings?.trivia || 0;
+        const totalEarnings = readingEarnings + coinUnlockEarnings + tipEarnings + triviaEarnings;
+
+        // 3. Send Email via Resend
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
               <h1 style="margin: 0;">📚 BookNaija</h1>
               <p style="margin: 10px 0 0; opacity: 0.9;">Monthly Author Earnings Report</p>
             </div>
-            
             <div style="background: white; padding: 30px; border: 1px solid #eee;">
-              <p style="font-size: 18px; color: #333;">Hello <strong>${report.name}</strong>,</p>
-              
+              <p style="font-size: 18px; color: #333;">Hello <strong>${author.fullName}</strong>,</p>
               <p style="color: #666;">Here's your earnings report for this month:</p>
-              
               <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <div style="font-size: 14px; color: #666;">Your Earnings</div>
-                <div style="font-size: 36px; font-weight: bold; color: #28a745; margin: 10px 0;">
-                  ₦${report.earnings.toLocaleString()}
-                </div>
+                <div style="font-size: 14px; color: #666;">Your Total Earnings</div>
+                <div style="font-size: 36px; font-weight: bold; color: #28a745; margin: 10px 0;">₦${totalEarnings.toLocaleString()}</div>
               </div>
-              
-              <h3 style="color: #333; margin-top: 30px;">📊 Your Stats</h3>
+              <h3 style="color: #333;">📊 Your Stats</h3>
               <table style="width: 100%; border-collapse: collapse;">
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; color: #666;">Books Published</td>
-                  <td style="padding: 10px; text-align: right; font-weight: bold;">${report.books}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; color: #666;">Total Reads</td>
-                  <td style="padding: 10px; text-align: right; font-weight: bold;">${report.reads}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 10px; color: #666;">Minutes Read</td>
-                  <td style="padding: 10px; text-align: right; font-weight: bold;">${report.minutes}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 10px; color: #666;">Unique Readers</td>
-                  <td style="padding: 10px; text-align: right; font-weight: bold;">${report.uniqueReaders}</td>
-                </tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; color: #666;">Books Published</td><td style="padding: 10px; text-align: right; font-weight: bold;">${books.length}</td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px; color: #666;">Total Completed Reads</td><td style="padding: 10px; text-align: right; font-weight: bold;">${totalReads}</td></tr>
+                <tr><td style="padding: 10px; color: #666;">Total Reading Minutes</td><td style="padding: 10px; text-align: right; font-weight: bold;">${Math.floor(totalTime / 60)}</td></tr>
               </table>
-              
-              <h3 style="color: #333; margin-top: 30px;">💰 Earnings Breakdown</h3>
-              <p style="color: #666; font-size: 14px;">Your earnings are calculated based on:</p>
-              <ul style="color: #666; line-height: 1.8;">
-                <li><strong>70%</strong> from total minutes readers spent on your books (${report.breakdown.minutesShare}%)</li>
-                <li><strong>30%</strong> from unique readers who read your books (${report.breakdown.readersShare}%)</li>
-              </ul>
-              
               <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0; color: #004085; font-size: 14px;">
-                  💳 Payment will be sent to your registered bank account within 7 days.
-                </p>
+                <p style="margin: 0; color: #004085; font-size: 14px;">💳 <strong>Note:</strong> Earnings are calculated 100% based on completed reading minutes. Payments are processed monthly to your registered bank account.</p>
               </div>
-              
-              <p style="color: #666; margin-top: 30px;">
-                View your full dashboard anytime at:<br/>
-                <a href="https://booknaija.vercel.app/author-dashboard" style="color: #667eea; font-weight: bold;">
-                  https://booknaija.vercel.app/author-dashboard
-                </a>
-              </p>
-              
-              <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center;">
-                Thank you for being part of BookNaija! 📚💚
-              </p>
+              <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center;">Thank you for being part of BookNaija! 📚💚</p>
             </div>
           </div>
         `;
 
-        // Send via Resend (free email service)
         const response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -161,26 +108,34 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: 'BookNaija <onboarding@resend.dev>',
-            to: report.email,
-            subject: `📚 Your BookNaija Earnings: ₦${report.earnings.toLocaleString()}`,
+            from: 'BookNaija <onboarding@resend.dev>', // Update to your verified domain later (e.g., reports@booknaija.com)
+            to: author.email,
+            subject: `📚 Your BookNaija Earnings: ₦${totalEarnings.toLocaleString()}`,
             html: emailHtml
           })
         });
 
         if (response.ok) {
-          sentReports.push({ email: report.email, name: report.name, earnings: report.earnings });
+          sentReports.push({ name: author.fullName, email: author.email, earnings: totalEarnings });
+        } else {
+          const errorData = await response.json();
+          failedReports.push({ name: author.fullName, email: author.email, reason: errorData.message || 'Resend API error' });
         }
+
+        // 1-second delay to prevent rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
       } catch (error) {
-        console.error(`Failed to send to ${report.email}:`, error);
+        failedReports.push({ name: author.fullName, email: author.email, reason: error.message });
       }
     }
 
     res.status(200).json({
       success: true,
       sent: sentReports.length,
+      failed: failedReports.length,
       total: authors.length,
-      reports: sentReports
+      details: { sent: sentReports, failed: failedReports }
     });
   } catch (error) {
     console.error('Send reports error:', error);
