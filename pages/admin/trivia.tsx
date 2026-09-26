@@ -152,10 +152,13 @@ export default function AdminTriviaDashboard() {
         </p>
       </div>
 
-      {!isTournamentActive && tournament?.status !== 'closed' && (
-        <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px',textAlign:'center'}}>
-          <h3 style={{marginTop:0,color:'#333',marginBottom:'15px'}}>🚀 Launch Tournament</h3>
-          <p style={{color:'#666',marginBottom:'20px'}}>The tournament will auto-start on the 1st of the month, or you can launch it manually now!</p>
+      {/* MANUAL OVERRIDE CONTROLS - Always visible */}
+      <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px',textAlign:'center'}}>
+        <h3 style={{marginTop:0,color:'#333',marginBottom:'15px'}}>🎛️ Manual Override Controls</h3>
+        <p style={{color:'#666',marginBottom:'20px',fontSize:'14px'}}>
+          The tournament auto-launches on the 1st and auto-closes after 7 days, but you can override here anytime!
+        </p>
+        <div style={{display:'flex',gap:'15px',justifyContent:'center',flexWrap:'wrap'}}>
           <button
             onClick={handleLaunch}
             disabled={isLaunching || selectedBooks.length === 0}
@@ -163,18 +166,14 @@ export default function AdminTriviaDashboard() {
           >
             {isLaunching ? '⏳ Launching...' : `🚀 Launch Tournament (${selectedBooks.length} Books)`}
           </button>
-        </div>
-      )}
-
-      {isTournamentActive && (
-        <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px',textAlign:'center'}}>
-          <h3 style={{marginTop:0,color:'#333',marginBottom:'15px'}}>🔴 Close Tournament Early</h3>
-          <p style={{color:'#666',marginBottom:'20px'}}>Tournament will auto-close after 7 days, or you can close it now.</p>
-          <button onClick={handleStop} style={{padding:'12px 30px',background:'#dc3545',color:'white',border:'none',borderRadius:'8px',fontWeight:'bold',fontSize:'16px',cursor:'pointer'}}>
+          <button
+            onClick={handleStop}
+            style={{padding:'15px 40px',background:'#dc3545',color:'white',border:'none',borderRadius:'12px',fontWeight:'bold',fontSize:'18px',cursor:'pointer',boxShadow:'0 4px 16px rgba(220,53,69,0.4)'}}
+          >
             🔴 Close Tournament Now
           </button>
         </div>
-      )}
+      </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:'15px',marginBottom:'30px'}}>
         <div style={{background:'white',padding:'20px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',textAlign:'center'}}>
@@ -205,6 +204,7 @@ export default function AdminTriviaDashboard() {
                   <div style={{textAlign:'right'}}>
                     <div style={{fontSize:'24px',fontWeight:'bold',color:'#28a745'}}>{w.score} correct</div>
                     <div style={{fontSize:'13px',color:'#666'}}>Time: {Math.floor(w.completionTime / 60)}m {w.completionTime % 60}s</div>
+                    <div style={{fontSize:'14px',fontWeight:'bold',color:'#28a745',marginTop:'5px'}}>Prize: ₦{(w.prizeAmount || 0).toLocaleString()}</div>
                   </div>
                 </div>
               </div>
