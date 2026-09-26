@@ -17,10 +17,15 @@ export default async function handler(req, res) {
 
     if (!author) return res.status(404).json({ error: 'Author not found' });
 
-    // 2. Check Payout Status for Current Month
+    // 2. Check Payout Status for Current Month in the 'payouts' collection
     const currentMonth = new Date().toISOString().slice(0, 7); // e.g., "2026-09"
-    const payoutStatus = author.payouts && author.payouts[currentMonth] === 'paid' ? 'paid' : 'pending';
-    const lastPaidMonth = author.lastPaidMonth || null;
+    const payoutRecord = await db.collection('payouts').findOne({
+      authorEmail: author.email,
+      month: currentMonth
+    });
+
+    const isPaidThisMonth = !!payoutRecord;
+    const lastPaidMonth = isPaidThisMonth ? currentMonth : (author.lastPayoutAt ? new Date(author.lastPayoutAt).toISOString().slice(0, 7) : null);
 
     // 3. Find Books (Flexible name matching)
     const cleanName = author.fullName.trim().replace(/\s+/g, ' ');
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
     let tipEarnings = 0;
     let triviaEarnings = 0;
 
-    if (payoutStatus === 'pending') {
+    if (!isPaidThisMonth) {
       if (bookIds.length > 0) {
         const readsAgg = await db.collection('reads').aggregate([
           { $match: { bookId: { $in: bookIds }, completed: true } },
@@ -71,6 +76,7 @@ export default async function handler(req, res) {
         readingEarnings = Math.round((totalTimeSpent / platformTotalTime) * authorPool);
       }
 
+      // These are already reset to 0 by mark-paid.js, but we read them safely
       coinUnlockEarnings = author.earnings?.coinUnlocks || 0;
       tipEarnings = author.earnings?.tips || 0;
       triviaEarnings = author.earnings?.trivia || 0;
@@ -87,7 +93,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       isAuthor: true,
-      payoutStatus,
+      payoutStatus: isPaidThisMonth ? 'paid' : 'pending',
       lastPaidMonth,
       author: {
         name: author.fullName,
