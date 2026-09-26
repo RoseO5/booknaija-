@@ -64,6 +64,9 @@ export default function AuthorDashboard() {
     );
   }
 
+  const isPaid = data.payoutStatus === 'paid';
+  const displayMonth = data.lastPaidMonth || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
   return (
     <div style={{padding:'20px',maxWidth:'800px',margin:'0 auto',fontFamily:'Arial'}}>
       {/* Header */}
@@ -76,6 +79,17 @@ export default function AuthorDashboard() {
           📤 Upload New Book
         </a>
       </div>
+
+      {/* PAID STATUS BANNER */}
+      {isPaid && (
+        <div style={{background:'#d4edda', color:'#155724', padding:'25px', borderRadius:'12px', textAlign:'center', marginBottom:'30px', border:'2px solid #c3e6cb', boxShadow:'0 4px 12px rgba(40,167,69,0.1)'}}>
+          <div style={{fontSize:'40px',marginBottom:'10px'}}>✅</div>
+          <h3 style={{margin:'0 0 10px', fontSize:'22px', fontWeight:'bold'}}>Paid for {displayMonth}</h3>
+          <p style={{margin:'0', fontSize:'15px', lineHeight:'1.6'}}>
+            Your earnings have been successfully processed and sent to your bank account. New earnings will accumulate for next month!
+          </p>
+        </div>
+      )}
 
       {/* WhatsApp Community */}
       <div style={{background:'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center',marginBottom:'30px',boxShadow:'0 4px 12px rgba(37,211,102,0.3)'}}>
@@ -91,10 +105,10 @@ export default function AuthorDashboard() {
 
       {/* Earnings Overview */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'15px',marginBottom:'30px'}}>
-        <div style={{background:'linear-gradient(135deg,#28a745 0%,#20c997 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center'}}>
+        <div style={{background: isPaid ? 'linear-gradient(135deg, #6c757d 0%, #495057 100%)' : 'linear-gradient(135deg,#28a745 0%,#20c997 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center'}}>
           <div style={{fontSize:'14px',opacity:0.9}}>Your Earnings</div>
           <div style={{fontSize:'32px',fontWeight:'bold'}}>₦{(typeof data.earnings === 'object' ? data.earnings.total : data.earnings || 0)?.toLocaleString() || 0}</div>
-          <div style={{fontSize:'12px',opacity:0.8}}>This month</div>
+          <div style={{fontSize:'12px',opacity:0.8}}>{isPaid ? 'Next payout next month' : 'This month'}</div>
         </div>
         <div style={{background:'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',padding:'25px',borderRadius:'12px',color:'white',textAlign:'center'}}>
           <div style={{fontSize:'14px',opacity:0.9}}>Total Books</div>
@@ -112,21 +126,21 @@ export default function AuthorDashboard() {
       <div style={{background:'white',padding:'25px',borderRadius:'12px',boxShadow:'0 2px 10px rgba(0,0,0,0.1)',marginBottom:'30px'}}>
         <h3 style={{marginTop:0,color:'#333',marginBottom:'20px'}}>💰 Detailed Earnings Breakdown</h3>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))',gap:'15px',marginBottom:'20px'}}>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #28a745'}}>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:`4px solid ${isPaid ? '#6c757d' : '#28a745'}`}}>
             <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>📖 From Reading</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#28a745'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromReading : 0)?.toLocaleString() || 0}</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color: isPaid ? '#6c757d' : '#28a745'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromReading : 0)?.toLocaleString() || 0}</div>
           </div>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #fd7e14'}}>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:`4px solid ${isPaid ? '#6c757d' : '#fd7e14'}`}}>
             <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🔓 24-Hr Unlocks</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#fd7e14'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromCoinUnlocks : 0)?.toLocaleString() || 0}</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color: isPaid ? '#6c757d' : '#fd7e14'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromCoinUnlocks : 0)?.toLocaleString() || 0}</div>
           </div>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #f5576c'}}>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:`4px solid ${isPaid ? '#6c757d' : '#f5576c'}`}}>
             <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🎁 From Tips</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#f5576c'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTips : 0)?.toLocaleString() || 0}</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color: isPaid ? '#6c757d' : '#f5576c'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTips : 0)?.toLocaleString() || 0}</div>
           </div>
-          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:'4px solid #6f42c1'}}>
+          <div style={{background:'#f8f9fa',padding:'15px',borderRadius:'8px',textAlign:'center',borderTop:`4px solid ${isPaid ? '#6c757d' : '#6f42c1'}`}}>
             <div style={{fontSize:'12px',color:'#666',marginBottom:'5px'}}>🏆 Trivia Features</div>
-            <div style={{fontSize:'20px',fontWeight:'bold',color:'#6f42c1'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTrivia : 0)?.toLocaleString() || 0}</div>
+            <div style={{fontSize:'20px',fontWeight:'bold',color: isPaid ? '#6c757d' : '#6f42c1'}}>₦{(typeof data.earnings === 'object' ? data.earnings.fromTrivia : 0)?.toLocaleString() || 0}</div>
           </div>
         </div>
         <div style={{background:'#e7f3ff',padding:'15px',borderRadius:'8px',textAlign:'center'}}>
